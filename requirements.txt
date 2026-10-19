@@ -1,50 +1,52 @@
 # ==============================================================================
 # AI-Powered Job Search Assistant - Backend Dependencies
 # ==============================================================================
+# Pinned to the versions the test suite passes with. Unpinned ranges broke
+# installs: SQLAlchemy 2.1 switched its PostgreSQL driver to psycopg 3.
 
 # Flask Framework
-Flask>=3.0.0
-Flask-SQLAlchemy>=3.1.1
-Flask-Migrate>=4.0.5
-Flask-CORS>=4.0.0
-Flask-Limiter>=3.5.0
+Flask==3.1.2
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.1.0
+Flask-CORS==6.0.2
+Flask-Limiter==4.1.1
 
 # Database
-SQLAlchemy>=2.0.23
-psycopg2-binary>=2.9.9
-alembic>=1.13.0
+SQLAlchemy==2.0.46
+psycopg2-binary==2.9.11
+alembic==1.18.3
 
 # Authentication
-PyJWT>=2.8.0
-bcrypt>=4.1.1
+PyJWT==2.11.0
+bcrypt==5.0.0
 
 # Caching & Rate Limiting
-redis>=5.0.1
+redis==7.1.0
 
 # HTTP Client
-requests>=2.31.0
-httpx>=0.25.2
+requests==2.32.5
+httpx==0.28.1
 
 # Data Validation
-pydantic>=2.5.2
-email-validator>=2.1.0
+pydantic==2.12.5
+email-validator==2.3.0
 
 # Document Generation
-python-docx>=1.1.0
-reportlab>=4.0.7
+python-docx==1.2.0
+reportlab==4.4.9
 
 # Data Generation (for seeding)
-Faker>=22.0.0
+Faker==40.1.2
 
 # Environment
-python-dotenv>=1.0.0
+python-dotenv==1.2.1
 
 # Production Server
-gunicorn>=21.2.0
+gunicorn==25.0.2
 
 # AI/ML
-openai>=1.6.0
+openai==2.17.0
 
 # Utilities
-python-dateutil>=2.8.2
-html2text>=2024.2.26
+python-dateutil==2.9.0.post0
+html2text==2025.4.15
