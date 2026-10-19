@@ -295,6 +295,9 @@ class TestSendMessage:
             def send_message(self, content, tools=None):
                 return f"AI response to: {content}"
 
+            def chat_with_tools(self, content, tools, execute_tool, max_rounds=5):
+                return f"AI response to: {content}", []
+
         class MockAIService:
             def is_available(self):
                 return True

@@ -5,9 +5,10 @@ Base class for all AI agents with common functionality.
 Provides OpenAI integration, conversation management, and error handling.
 """
 
+import json
 import logging
 from datetime import datetime
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple
 
 from openai import OpenAI, OpenAIError
 from openai.types.chat import ChatCompletionChunk
@@ -173,6 +174,106 @@ class BaseAgent:
             error_msg = "I apologize, but an unexpected error occurred. Please try again."
             self.conversation.add_assistant_message(error_msg)
             return error_msg
+
+    def chat_with_tools(
+        self,
+        message: str,
+        tools: List[Dict[str, Any]],
+        execute_tool: Callable[[str, Dict[str, Any]], str],
+        max_rounds: int = 5,
+    ) -> Tuple[str, List[Dict[str, Any]]]:
+        """
+        Send a message and let the model call tools until it answers in text.
+
+        Each round, every tool call the model asks for is executed and its result
+        goes back as a "tool" message linked by tool_call_id. After max_rounds the
+        model is called once more without tools, so it has to answer.
+
+        Args:
+            message: User message
+            tools: Tool definitions for function calling
+            execute_tool: Runs a tool: (name, arguments) -> result as a JSON string
+            max_rounds: Maximum number of tool-calling rounds
+
+        Returns:
+            Tuple of (answer text, tool calls made as {"name", "arguments"} dicts)
+        """
+        if self.conversation is None:
+            self.initialize_conversation()
+
+        self.conversation.add_user_message(message)
+        tool_calls_made: List[Dict[str, Any]] = []
+
+        try:
+            for round_number in range(max_rounds + 1):
+                kwargs = {
+                    "model": self.model,
+                    "messages": self.conversation.get_messages(),
+                    "temperature": self.temperature,
+                    "max_tokens": self.max_tokens,
+                }
+                if round_number < max_rounds:
+                    kwargs["tools"] = tools
+                    kwargs["tool_choice"] = "auto"
+
+                response = self.client.chat.completions.create(**kwargs)
+                assistant_message = response.choices[0].message
+                tool_calls = assistant_message.tool_calls or []
+
+                if not tool_calls:
+                    content = assistant_message.content or ""
+                    self.conversation.add_assistant_message(content)
+                    logger.info(
+                        f"Answered after {len(tool_calls_made)} tool calls, "
+                        f"tokens used: {response.usage.total_tokens}"
+                    )
+                    return content, tool_calls_made
+
+                self.conversation.add_assistant_tool_calls(
+                    assistant_message.content or "",
+                    [
+                        {
+                            "id": call.id,
+                            "type": "function",
+                            "function": {"name": call.function.name, "arguments": call.function.arguments},
+                        }
+                        for call in tool_calls
+                    ],
+                )
+
+                for call in tool_calls:
+                    name = call.function.name
+                    try:
+                        arguments = json.loads(call.function.arguments or "{}")
+                    except json.JSONDecodeError:
+                        arguments = None
+
+                    if not isinstance(arguments, dict):
+                        tool_calls_made.append({"name": name, "arguments": None})
+                        result = json.dumps({"success": False, "error": "Arguments must be a JSON object"})
+                    else:
+                        # Record the arguments as the model sent them, before execute_tool changes them
+                        tool_calls_made.append({"name": name, "arguments": dict(arguments)})
+                        try:
+                            result = execute_tool(name, arguments)
+                        except Exception as e:
+                            logger.error(f"Tool {name} failed: {e}", exc_info=True)
+                            result = json.dumps({"success": False, "error": f"Tool {name} failed"})
+
+                    self.conversation.add_tool_result(call.id, result)
+
+            # Only reached if the model asked for tools even when none were offered
+            fallback = "Sorry, I couldn't finish that request. Please try rephrasing it."
+            self.conversation.add_assistant_message(fallback)
+            return fallback, tool_calls_made
+
+        except OpenAIError as e:
+            logger.error(f"OpenAI API error: {e}")
+            error_msg = (
+                "I apologize, but I'm having trouble connecting to the AI service. Please try again in a moment."
+            )
+            self.conversation.add_assistant_message(error_msg)
+            return error_msg, tool_calls_made
 
     async def send_message_stream(
         self,

@@ -19,6 +19,9 @@ from src.services.profile_service import ProfileService
 
 logger = logging.getLogger(__name__)
 
+# Tools that read or write the logged-in user's data
+USER_SCOPED_TOOLS = {"generate_cv", "list_user_cvs", "get_user_profile"}
+
 chat_bp = Blueprint("chat", __name__, url_prefix="/api/chat")
 
 
@@ -516,39 +519,15 @@ def send_message(user_id, email, conversation_id):
             # Initialize database tools with session for execution
             db_tools = DatabaseTools(db.session)
 
-            # Get AI response with tools
-            ai_response = agent.send_message(content, tools=tools)
+            def execute_tool(tool_name, tool_args):
+                # Tools that touch user data always act as the logged-in user,
+                # whatever user_id the model put in the arguments
+                if tool_name in USER_SCOPED_TOOLS:
+                    tool_args["user_id"] = user_id
+                return db_tools.execute_tool(tool_name, tool_args)
 
-            # Check if there's a function call to execute
-            if agent.conversation and agent.conversation.messages:
-                last_msg = agent.conversation.messages[-1]
-                if last_msg.function_call:
-                    function_call = last_msg.function_call
-                    tool_name = function_call.get("name")
-
-                    try:
-                        # Parse arguments
-                        tool_args = json.loads(function_call.get("arguments", "{}"))
-
-                        # Inject user_id for tools that need it
-                        if tool_name in [
-                            "generate_cv",
-                            "list_user_cvs",
-                            "get_user_profile",
-                        ]:
-                            tool_args["user_id"] = user_id
-
-                        # Execute tool
-                        tool_result = db_tools.execute_tool(tool_name, tool_args)
-
-                        # Add tool result to conversation
-                        agent.add_function_result(tool_name, tool_result)
-
-                        # Get final response from AI after tool execution
-                        ai_response = agent.send_message(f"Tool {tool_name} returned: {tool_result}")
-                    except Exception as tool_error:
-                        logger.error(f"Tool execution error: {str(tool_error)}")
-                        # Continue with original response if tool fails
+            # Let the model call tools, several per round if it needs them
+            ai_response, tool_calls = agent.chat_with_tools(content, tools=tools, execute_tool=execute_tool)
 
             # Create assistant message
             assistant_message = Message(conversation_id=conversation_id, role="assistant", content=ai_response)
@@ -573,6 +552,7 @@ def send_message(user_id, email, conversation_id):
                         "data": {
                             "user_message": user_message.to_dict(),
                             "assistant_message": assistant_message.to_dict(),
+                            "tool_calls": tool_calls,
                         },
                     }
                 ),

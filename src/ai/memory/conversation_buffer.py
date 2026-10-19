@@ -14,11 +14,13 @@ from typing import Any, Dict, List, Optional
 class Message:
     """Represents a single message in the conversation."""
 
-    role: str  # 'system', 'user', 'assistant', 'function'
+    role: str  # 'system', 'user', 'assistant', 'tool', or legacy 'function'
     content: str
     timestamp: datetime = field(default_factory=datetime.utcnow)
     function_call: Optional[Dict[str, Any]] = None
     name: Optional[str] = None  # For function messages
+    tool_calls: Optional[List[Dict[str, Any]]] = None  # Tools the assistant asked to run
+    tool_call_id: Optional[str] = None  # For tool messages: the call this result answers
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert message to OpenAI API format."""
@@ -30,6 +32,12 @@ class Message:
             msg["function_call"] = self.function_call
         if self.name:
             msg["name"] = self.name
+        if self.tool_calls:
+            msg["tool_calls"] = self.tool_calls
+            # OpenAI expects null, not an empty string, when the assistant only calls tools
+            msg["content"] = self.content or None
+        if self.tool_call_id:
+            msg["tool_call_id"] = self.tool_call_id
         return msg
 
 
@@ -83,6 +91,16 @@ class ConversationBuffer:
         self.messages.append(Message(role="function", content=content, name=name))
         self._truncate_if_needed()
 
+    def add_assistant_tool_calls(self, content: str, tool_calls: List[Dict[str, Any]]) -> None:
+        """Add an assistant message that asks to run tools (OpenAI tool_calls format)."""
+        self.messages.append(Message(role="assistant", content=content, tool_calls=tool_calls))
+        self._truncate_if_needed()
+
+    def add_tool_result(self, tool_call_id: str, content: str) -> None:
+        """Add the result of one tool call, linked to that call by its id."""
+        self.messages.append(Message(role="tool", content=content, tool_call_id=tool_call_id))
+        self._truncate_if_needed()
+
     def get_messages(self) -> List[Dict[str, Any]]:
         """Get all messages in OpenAI API format."""
         return [msg.to_dict() for msg in self.messages]
@@ -122,6 +140,12 @@ class ConversationBuffer:
             self.messages = [system_msg] + other_messages[-keep_count:]
         else:
             self.messages = self.messages[-self.max_messages :]
+
+        # A tool result is only valid right after the assistant message that asked
+        # for it, so drop results whose request was cut off
+        start = 1 if self.messages and self.messages[0].role == "system" else 0
+        while len(self.messages) > start and self.messages[start].role == "tool":
+            del self.messages[start]
 
     def estimate_tokens(self) -> int:
         """
