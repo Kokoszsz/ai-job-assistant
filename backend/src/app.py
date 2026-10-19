@@ -180,7 +180,6 @@ def create_app(config_name=None):
         f"Database URL: {app.config['SQLALCHEMY_DATABASE_URI'].split('@')[1] if '@' in app.config['SQLALCHEMY_DATABASE_URI'] else 'not configured'}"
     )
     app.logger.info(f"Redis URL: {app.config['REDIS_URL']}")
-    app.logger.info(f"MCP Service: {app.config['MCP_SERVICE_URL']}")
     app.logger.info(f"Using dummy data: {app.config['USE_DUMMY_DATA']}")
 
     # Register CLI commands

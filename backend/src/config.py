@@ -61,11 +61,6 @@ class Config:
     CONVERSATION_MAX_MESSAGES = int(os.getenv('CONVERSATION_MAX_MESSAGES', 20))
     CONVERSATION_MAX_TOKENS = int(os.getenv('CONVERSATION_MAX_TOKENS', 4000))
     
-    # MCP Service
-    MCP_SERVICE_URL = os.getenv('MCP_SERVICE_URL', 'http://mcp:8000')
-    MCP_SERVICE_TIMEOUT = int(os.getenv('MCP_SERVICE_TIMEOUT', 30))
-    USE_MCP_TOOLS = os.getenv('USE_MCP_TOOLS', 'false').lower() == 'true'
-    
     # External APIs
     ADZUNA_APP_ID = os.getenv('ADZUNA_APP_ID', '')
     ADZUNA_API_KEY = os.getenv('ADZUNA_API_KEY', '')

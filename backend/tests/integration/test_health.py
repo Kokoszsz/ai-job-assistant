@@ -42,9 +42,7 @@ def test_health_check_success(client):
     
     # Verify services object
     services = data['services']
-    assert 'database' in services
-    assert 'redis' in services
-    assert 'mcp' in services
+    assert set(services) == {'database', 'redis'}
 
 
 def test_health_check_status_values(client):

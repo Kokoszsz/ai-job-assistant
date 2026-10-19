@@ -28,8 +28,7 @@ def health_check():
             "version": "0.1.0",
             "services": {
                 "database": "connected",
-                "redis": "connected",
-                "mcp": "unknown"
+                "redis": "connected"
             }
         }
     """
@@ -57,28 +56,11 @@ def health_check():
         redis_status = f'error: {str(e)}'
         current_app.logger.warning(f"Redis health check failed: {str(e)}")
     
-    # Check MCP service connectivity (optional)
-    mcp_status = 'unknown'
-    try:
-        import requests
-        mcp_url = current_app.config.get('MCP_SERVICE_URL')
-        if mcp_url:
-            response = requests.get(f"{mcp_url}/health", timeout=2)
-            if response.status_code == 200:
-                mcp_status = 'connected'
-            else:
-                mcp_status = f'http_{response.status_code}'
-    except ImportError:
-        mcp_status = 'requests_not_installed'
-    except Exception as e:
-        mcp_status = f'unreachable'
-        current_app.logger.debug(f"MCP health check failed: {str(e)}")
-    
     # Determine overall status
     overall_status = 'healthy'
     if db_status != 'connected':
         overall_status = 'unhealthy'
-    elif 'error' in redis_status or 'error' in mcp_status:
+    elif 'error' in redis_status:
         overall_status = 'degraded'
     
     # Build response
@@ -90,7 +72,6 @@ def health_check():
         'services': {
             'database': db_status,
             'redis': redis_status,
-            'mcp': mcp_status,
         }
     }
     

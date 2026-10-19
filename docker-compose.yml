@@ -2,7 +2,7 @@
 # AI-Powered Job Search Assistant - Docker Compose (Development)
 # ==============================================================================
 # Usage: docker-compose up --build
-# Services: backend, frontend, mcp, db (PostgreSQL), redis
+# Services: backend (Flask API + AI agent), db (PostgreSQL), redis
 
 services:
   # ============================================================================
@@ -61,7 +61,6 @@ services:
       - FLASK_DEBUG=${FLASK_DEBUG}
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
-      - MCP_SERVICE_URL=${MCP_SERVICE_URL}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - SECRET_KEY=${SECRET_KEY}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
@@ -112,101 +111,6 @@ services:
       - jobassistant-network
     command: flask run --host=0.0.0.0 --port=5000 --reload
 
-  # ============================================================================
-  # Frontend (React/Next.js)
-  # ============================================================================
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: development
-    container_name: jobassistant-frontend
-    environment:
-      - NODE_ENV=${ENVIRONMENT:-development}
-      - REACT_APP_API_URL=${REACT_APP_API_URL}
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-      - REACT_APP_WS_URL=${REACT_APP_WS_URL}
-      - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
-      - REACT_APP_TITLE=${REACT_APP_TITLE}
-      - NEXT_PUBLIC_TITLE=${NEXT_PUBLIC_TITLE}
-      - REACT_APP_ENABLE_ANALYTICS=${REACT_APP_ENABLE_ANALYTICS}
-      - NEXT_PUBLIC_ENABLE_ANALYTICS=${NEXT_PUBLIC_ENABLE_ANALYTICS}
-      - PORT=${PORT}
-      - GENERATE_SOURCEMAP=${GENERATE_SOURCEMAP}
-      - BROWSER=${BROWSER}
-      - SKIP_PREFLIGHT_CHECK=${SKIP_PREFLIGHT_CHECK}
-      - WATCHPACK_POLLING=true
-    env_file:
-      - ./.env
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - frontend_node_modules:/app/node_modules
-      - frontend_next_cache:/app/.next
-    depends_on:
-      - backend
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    networks:
-      - jobassistant-network
-
-  # ============================================================================
-  # MCP Service (AI Agents)
-  # ============================================================================
-  mcp:
-    build:
-      context: ./mcp
-      dockerfile: Dockerfile
-      target: development
-    container_name: jobassistant-mcp
-    environment:
-      - MCP_HOST=${MCP_HOST}
-      - MCP_PORT=${MCP_PORT}
-      - MCP_DEBUG=${MCP_DEBUG}
-      - MCP_LOG_LEVEL=${MCP_LOG_LEVEL}
-      - BACKEND_API_URL=${BACKEND_API_URL}
-      - BACKEND_API_TIMEOUT=${BACKEND_API_TIMEOUT}
-      - BACKEND_SERVICE_TOKEN=${BACKEND_SERVICE_TOKEN}
-      - REDIS_URL=${REDIS_MCP_URL}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_MODEL=${OPENAI_MODEL}
-      - OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS}
-      - OPENAI_TEMPERATURE=${OPENAI_TEMPERATURE}
-      - OPENAI_RATE_LIMIT_RPM=${OPENAI_RATE_LIMIT_RPM}
-      - OPENAI_RATE_LIMIT_TPM=${OPENAI_RATE_LIMIT_TPM}
-      - CONVERSATION_MEMORY_TTL=${CONVERSATION_MEMORY_TTL}
-      - MAX_CONVERSATION_HISTORY=${MAX_CONVERSATION_HISTORY}
-      - AGENT_MAX_RETRIES=${AGENT_MAX_RETRIES}
-      - AGENT_RETRY_DELAY=${AGENT_RETRY_DELAY}
-      - AGENT_TIMEOUT=${AGENT_TIMEOUT}
-      - USE_DUMMY_DATA=${USE_DUMMY_DATA}
-      - USE_MOCK_OPENAI=${USE_MOCK_OPENAI}
-      - LOG_LEVEL=${LOG_LEVEL}
-      - LOG_FORMAT=${LOG_FORMAT}
-    env_file:
-      - ./.env
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./mcp:/app
-      - mcp_venv:/app/.venv
-    depends_on:
-      - backend
-      - redis
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    networks:
-      - jobassistant-network
-
 # ==============================================================================
 # Networks
 # ==============================================================================
@@ -221,8 +125,3 @@ volumes:
   postgres_data:
   redis_data:
   backend_venv:
-  mcp_venv:
-  frontend_node_modules:
-    name: jobassistant-frontend-node-modules
-  frontend_next_cache:
-    name: jobassistant-frontend-next-cache
