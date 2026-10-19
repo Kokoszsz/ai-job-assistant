@@ -28,9 +28,12 @@ tests/           # unit/ and integration/ (pytest)
 
 **How a chat message flows:** `POST /api/chat/conversations/<id>/messages` →
 the agent sends the conversation plus the tool definitions to OpenAI → if the
-model asks for a tool, the backend runs it against the database (for example
-`search_jobs(keywords="python", location="remote")`) → the result goes back to
-the model → the final answer is saved and returned.
+model asks for tools, the backend runs each one against the database (for
+example `search_jobs(keywords="python", location="remote")`) and sends every
+result back as a `tool` message → this repeats, up to 5 rounds, until the
+model answers in text → the answer is saved and returned together with the
+list of tool calls the agent made. The loop is `BaseAgent.chat_with_tools` in
+[`src/ai/agents/base_agent.py`](src/ai/agents/base_agent.py).
 
 **Tools the agent can call:** `search_jobs`, `get_job_details`,
 `get_user_profile`, `generate_cv`, `list_user_cvs`.
@@ -56,7 +59,26 @@ The API is now on http://localhost:5000. Check it with
 The seed script creates users `testuser1@example.com` ... `testuser10@example.com`
 with the password `TestPassword123!` (demo data only).
 
-## Try the agent with curl
+## Try the agent in the terminal
+
+With the API running, chat with the agent and see every tool it calls:
+
+```bash
+pip install requests
+python scripts/chat_cli.py --email testuser1@example.com   # asks for the password
+```
+
+```
+you> Find me remote Python jobs and tell me which one fits my profile best
+  -> search_jobs(keywords='python', location='remote')
+  -> get_user_profile()
+  -> get_job_details(job_id=12)
+agent> The best match is ...
+```
+
+(The tool calls above show the format; the exact calls depend on the model.)
+
+## Or with curl
 
 ```bash
 # 1. Log in and keep the access token
@@ -74,6 +96,8 @@ curl -s -X POST http://localhost:5000/api/chat/conversations \
 curl -s -X POST http://localhost:5000/api/chat/conversations/1/messages \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"content": "Find me remote Python jobs and tell me which one fits my profile best"}'
+# -> {"success": true, "data": {"assistant_message": {...},
+#     "tool_calls": [{"name": "search_jobs", "arguments": {"keywords": "python", ...}}, ...]}}
 ```
 
 The same token works for the other endpoints:
@@ -101,9 +125,7 @@ the full test suite against PostgreSQL and Redis, and a Docker image build.
 
 These are the next things I'd fix:
 
-- The agent loop runs one round with only the first tool call. A question
-  that needs two tools (search, then read details) gets a partial answer.
-- Tool results go back to the model as a user message instead of a proper
-  `tool` message linked to its `tool_call_id`.
+- The streaming endpoint (`.../messages/stream`) still uses the older
+  single-tool flow; the regular endpoint has the full tool loop.
 - There is no automated evaluation of the agent's answers yet; the tests
   check the API, not answer quality.
