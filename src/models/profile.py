@@ -5,20 +5,13 @@ User's professional information including work experience, education, and skills
 """
 
 from datetime import datetime
-from sqlalchemy import (
-    Column,
-    String,
-    Text,
-    Integer,
-    Date,
-    ForeignKey,
-    Index,
-    UniqueConstraint,
-)
+
+from sqlalchemy import Column, Date, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.types import JSON
 from sqlalchemy.orm import relationship
-from src.models.base import db, BaseModel
+from sqlalchemy.types import JSON
+
+from src.models.base import BaseModel, db
 
 
 class Profile(BaseModel):
@@ -32,15 +25,11 @@ class Profile(BaseModel):
 
     __tablename__ = "profiles"
 
-    user_id = Column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False
-    )
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
     summary = Column(Text, nullable=True)
     phone = Column(String(20), nullable=True)
     location = Column(String(100), nullable=True)
-    preferences_json = Column(
-        JSON().with_variant(JSONB, "postgresql"), nullable=True, default=dict
-    )
+    preferences_json = Column(JSON().with_variant(JSONB, "postgresql"), nullable=True, default=dict)
 
     # Relationships
     user = relationship("User", back_populates="profile")
@@ -56,9 +45,7 @@ class Profile(BaseModel):
         cascade="all, delete-orphan",
         order_by="desc(Education.start_date)",
     )
-    skills = relationship(
-        "Skill", back_populates="profile", cascade="all, delete-orphan"
-    )
+    skills = relationship("Skill", back_populates="profile", cascade="all, delete-orphan")
     certifications = relationship(
         "Certification",
         back_populates="profile",
@@ -71,18 +58,14 @@ class Profile(BaseModel):
         cascade="all, delete-orphan",
         order_by="desc(Project.start_date)",
     )
-    languages = relationship(
-        "Language", back_populates="profile", cascade="all, delete-orphan"
-    )
+    languages = relationship("Language", back_populates="profile", cascade="all, delete-orphan")
     education = relationship(
         "Education",
         back_populates="profile",
         cascade="all, delete-orphan",
         order_by="desc(Education.start_date)",
     )
-    skills = relationship(
-        "Skill", back_populates="profile", cascade="all, delete-orphan"
-    )
+    skills = relationship("Skill", back_populates="profile", cascade="all, delete-orphan")
 
     # Indexes
     __table_args__ = (Index("idx_profile_user", "user_id"),)
@@ -116,9 +99,7 @@ class Profile(BaseModel):
                 # Attempt to access the relationship
                 # If the table doesn't exist, this will raise ProgrammingError
                 if hasattr(self, "certifications"):
-                    data["certifications"] = [
-                        cert.to_dict() for cert in self.certifications
-                    ]
+                    data["certifications"] = [cert.to_dict() for cert in self.certifications]
                 else:
                     data["certifications"] = []
             except (ProgrammingError, Exception) as e:
@@ -153,9 +134,7 @@ class WorkExperience(BaseModel):
 
     __tablename__ = "work_experiences"
 
-    profile_id = Column(
-        Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False
-    )
+    profile_id = Column(Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False)
     job_title = Column(String(100), nullable=False)
     company = Column(String(100), nullable=False)
     start_date = Column(Date, nullable=False)
@@ -193,9 +172,7 @@ class Education(BaseModel):
 
     __tablename__ = "education"
 
-    profile_id = Column(
-        Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False
-    )
+    profile_id = Column(Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False)
     degree = Column(String(100), nullable=False)
     institution = Column(String(100), nullable=False)
     field_of_study = Column(String(100), nullable=True)
@@ -231,9 +208,7 @@ class Skill(BaseModel):
 
     PROFICIENCY_LEVELS = ["beginner", "intermediate", "advanced", "expert"]
 
-    profile_id = Column(
-        Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False
-    )
+    profile_id = Column(Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(50), nullable=False)
     proficiency_level = Column(String(20), nullable=False, default="intermediate")
 
@@ -265,9 +240,7 @@ class Certification(BaseModel):
 
     __tablename__ = "certifications"
 
-    profile_id = Column(
-        Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False
-    )
+    profile_id = Column(Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(200), nullable=False)
     issuing_organization = Column(String(200), nullable=False)
     issue_date = Column(Date, nullable=False)
@@ -313,9 +286,7 @@ class Project(BaseModel):
 
     __tablename__ = "projects"
 
-    profile_id = Column(
-        Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False
-    )
+    profile_id = Column(Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     technologies = Column(String(500), nullable=True)  # Comma-separated list
@@ -370,15 +341,9 @@ class Language(BaseModel):
         "native": "Native / Bilingual",
     }
 
-    profile_id = Column(
-        Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False
-    )
-    name = Column(
-        String(50), nullable=False
-    )  # Language name (e.g., "English", "Spanish")
-    proficiency_level = Column(
-        String(30), nullable=False, default="professional_working"
-    )
+    profile_id = Column(Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(50), nullable=False)  # Language name (e.g., "English", "Spanish")
+    proficiency_level = Column(String(30), nullable=False, default="professional_working")
 
     # Relationships
     profile = relationship("Profile", back_populates="languages")
@@ -398,8 +363,6 @@ class Language(BaseModel):
             "profile_id": self.profile_id,
             "name": self.name,
             "proficiency_level": self.proficiency_level,
-            "proficiency_label": self.PROFICIENCY_LABELS.get(
-                self.proficiency_level, self.proficiency_level
-            ),
+            "proficiency_label": self.PROFICIENCY_LABELS.get(self.proficiency_level, self.proficiency_level),
             "created_at": self.created_at.isoformat(),
         }

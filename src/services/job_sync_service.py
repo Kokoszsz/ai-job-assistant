@@ -11,15 +11,15 @@ Handles:
 """
 
 import logging
-from datetime import datetime
-from typing import Dict, Any, Optional
 from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.models.base import db
 from src.models.job import JobOffer
-from src.services.remotive_client import RemotiveClient, RemotiveAPIError
+from src.services.remotive_client import RemotiveAPIError, RemotiveClient
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +59,7 @@ class JobSyncService:
     """
 
     @staticmethod
-    def sync_from_remotive(
-        clear_existing: bool = False, category: Optional[str] = None
-    ) -> SyncStats:
+    def sync_from_remotive(clear_existing: bool = False, category: Optional[str] = None) -> SyncStats:
         """
         Sync jobs from Remotive API to the database.
 
@@ -108,20 +106,14 @@ class JobSyncService:
                     external_id = job_data.get("external_id")
 
                     if not external_id:
-                        logger.warning(
-                            f"Skipping job with no ID: {api_job.get('title')}"
-                        )
+                        logger.warning(f"Skipping job with no ID: {api_job.get('title')}")
                         stats.jobs_skipped += 1
                         continue
 
                     seen_external_ids.add(external_id)
 
                     # Check if job already exists
-                    existing_job = (
-                        db.session.query(JobOffer)
-                        .filter_by(external_id=external_id)
-                        .first()
-                    )
+                    existing_job = db.session.query(JobOffer).filter_by(external_id=external_id).first()
 
                     if existing_job:
                         # Update existing job
@@ -141,9 +133,7 @@ class JobSyncService:
             db.session.commit()
 
             # Soft-delete jobs not seen in this sync
-            stats.jobs_deactivated = JobSyncService._deactivate_stale_jobs(
-                sync_start_time, seen_external_ids
-            )
+            stats.jobs_deactivated = JobSyncService._deactivate_stale_jobs(sync_start_time, seen_external_ids)
 
             # Get final count of active jobs
             stats.total_active = JobSyncService._count_active_jobs()
@@ -213,9 +203,7 @@ class JobSyncService:
         job.last_seen_at = job_data["last_seen_at"]
 
     @staticmethod
-    def _deactivate_stale_jobs(
-        sync_start_time: datetime, seen_external_ids: set
-    ) -> int:
+    def _deactivate_stale_jobs(sync_start_time: datetime, seen_external_ids: set) -> int:
         """
         Deactivate jobs from Remotive that weren't seen in this sync.
 
@@ -232,9 +220,7 @@ class JobSyncService:
             .filter(
                 JobOffer.external_source == "remotive",
                 JobOffer.is_active == True,
-                JobOffer.external_id.notin_(seen_external_ids)
-                if seen_external_ids
-                else True,
+                JobOffer.external_id.notin_(seen_external_ids) if seen_external_ids else True,
             )
             .all()
         )
@@ -259,11 +245,7 @@ class JobSyncService:
         Returns:
             Number of jobs deleted
         """
-        deleted = (
-            db.session.query(JobOffer)
-            .filter(JobOffer.external_source == "remotive")
-            .delete()
-        )
+        deleted = db.session.query(JobOffer).filter(JobOffer.external_source == "remotive").delete()
         db.session.commit()
         return deleted
 
@@ -292,15 +274,9 @@ class JobSyncService:
             Dictionary with job counts by source and status
         """
         total_jobs = db.session.query(JobOffer).count()
-        active_jobs = (
-            db.session.query(JobOffer).filter(JobOffer.is_active == True).count()
-        )
+        active_jobs = db.session.query(JobOffer).filter(JobOffer.is_active == True).count()
 
-        remotive_total = (
-            db.session.query(JobOffer)
-            .filter(JobOffer.external_source == "remotive")
-            .count()
-        )
+        remotive_total = db.session.query(JobOffer).filter(JobOffer.external_source == "remotive").count()
         remotive_active = (
             db.session.query(JobOffer)
             .filter(JobOffer.external_source == "remotive", JobOffer.is_active == True)
@@ -323,11 +299,7 @@ class JobSyncService:
             last_sync_at = last_sync_job.last_seen_at.isoformat()
 
         # Dummy data (no external_source)
-        dummy_total = (
-            db.session.query(JobOffer)
-            .filter(JobOffer.external_source.is_(None))
-            .count()
-        )
+        dummy_total = db.session.query(JobOffer).filter(JobOffer.external_source.is_(None)).count()
 
         return {
             "total_jobs": total_jobs,

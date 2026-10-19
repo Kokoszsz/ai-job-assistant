@@ -6,7 +6,7 @@ Formats user profile data into context for AI personalization.
 
 import logging
 from datetime import date
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +32,8 @@ class ProfileContextBuilder:
 
         try:
             # Extract user info
-            from src.models.user import User
             from src.models.base import db
+            from src.models.user import User
 
             user = db.session.query(User).filter_by(id=user_id).first()
             name = user.name if user else "User"
@@ -43,9 +43,7 @@ class ProfileContextBuilder:
 
             # Professional background
             work_experiences = profile_data.get("work_experiences", [])
-            experience_level = ProfileContextBuilder.calculate_experience_level(
-                work_experiences
-            )
+            experience_level = ProfileContextBuilder.calculate_experience_level(work_experiences)
             current_role = ProfileContextBuilder._get_current_role(work_experiences)
 
             # Skills
@@ -159,19 +157,14 @@ class ProfileContextBuilder:
 
         sorted_skills = sorted(
             skills,
-            key=lambda s: proficiency_order.get(
-                s.get("proficiency_level", "beginner"), 3
-            ),
+            key=lambda s: proficiency_order.get(s.get("proficiency_level", "beginner"), 3),
         )
 
         # Take top N skills
         top_skills = sorted_skills[:max_skills]
 
         # Format as "SkillName (Level)"
-        skill_strings = [
-            f"{s['name']} ({s.get('proficiency_level', 'intermediate').capitalize()})"
-            for s in top_skills
-        ]
+        skill_strings = [f"{s['name']} ({s.get('proficiency_level', 'intermediate').capitalize()})" for s in top_skills]
 
         skills_count = len(skills)
         return f"Skills ({skills_count} total):\n- " + "\n- ".join(skill_strings)
@@ -265,19 +258,11 @@ class ProfileContextBuilder:
 
             try:
                 # Parse dates
-                start_date = (
-                    date.fromisoformat(start_date_str)
-                    if isinstance(start_date_str, str)
-                    else start_date_str
-                )
+                start_date = date.fromisoformat(start_date_str) if isinstance(start_date_str, str) else start_date_str
 
                 # Use current date if still employed
                 if end_date_str:
-                    end_date = (
-                        date.fromisoformat(end_date_str)
-                        if isinstance(end_date_str, str)
-                        else end_date_str
-                    )
+                    end_date = date.fromisoformat(end_date_str) if isinstance(end_date_str, str) else end_date_str
                 else:
                     end_date = date.today()
 
@@ -295,9 +280,7 @@ class ProfileContextBuilder:
         return total_years
 
     @staticmethod
-    def format_certifications(
-        certifications: List[Dict[str, Any]], max_certs: int = 5
-    ) -> str:
+    def format_certifications(certifications: List[Dict[str, Any]], max_certs: int = 5) -> str:
         """
         Format certifications summary.
 
@@ -398,9 +381,7 @@ class ProfileContextBuilder:
         lang_strings = []
         for lang in languages:
             name = lang.get("name", "")
-            proficiency = lang.get("proficiency_label") or lang.get(
-                "proficiency_level", ""
-            )
+            proficiency = lang.get("proficiency_label") or lang.get("proficiency_level", "")
 
             if name:
                 if proficiency:

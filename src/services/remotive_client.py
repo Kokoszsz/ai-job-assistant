@@ -11,10 +11,11 @@ API Documentation: https://remotive.com/api/remote-jobs
 
 import logging
 import re
-from typing import List, Dict, Any, Optional
 from datetime import datetime
-import requests
+from typing import Any, Dict, List, Optional
+
 import html2text
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -142,12 +143,12 @@ class RemotiveClient:
 
             text = h.handle(html_content)
             # Clean up excessive newlines
-            text = re.sub(r'\n{3,}', '\n\n', text)
+            text = re.sub(r"\n{3,}", "\n\n", text)
             return text.strip()
         except Exception as e:
             logger.warning(f"Failed to convert HTML to text: {e}")
             # Fallback: simple tag stripping
-            return re.sub(r'<[^>]+>', '', html_content).strip()
+            return re.sub(r"<[^>]+>", "", html_content).strip()
 
     @staticmethod
     def parse_salary(salary_text: Optional[str]) -> tuple[Optional[int], Optional[int]]:
@@ -183,9 +184,7 @@ class RemotiveClient:
         salary_text = salary_text.strip()
 
         # Convert "K" notation to thousands
-        salary_text = re.sub(
-            r"(\d+)K", lambda m: str(int(m.group(1)) * 1000), salary_text
-        )
+        salary_text = re.sub(r"(\d+)K", lambda m: str(int(m.group(1)) * 1000), salary_text)
 
         # Remove commas from numbers
         salary_text = salary_text.replace(",", "")
@@ -265,9 +264,7 @@ class RemotiveClient:
         if pub_date_str:
             try:
                 # Remotive uses ISO format: "2026-01-15T12:00:00"
-                posted_date = datetime.fromisoformat(
-                    pub_date_str.replace("Z", "+00:00")
-                ).date()
+                posted_date = datetime.fromisoformat(pub_date_str.replace("Z", "+00:00")).date()
             except (ValueError, AttributeError):
                 posted_date = datetime.utcnow().date()
         else:

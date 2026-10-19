@@ -5,9 +5,9 @@ Tool definitions for AI agents to query the database.
 Provides function calling schemas for job search, profile queries, and CV generation.
 """
 
-from typing import Dict, Any, List, Optional
 import json
 import logging
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -217,12 +217,8 @@ class DatabaseTools:
                         "salary_max": job.salary_max,
                         "category": job.category,
                         "tags": job.tags,
-                        "description": job.description[:200] + "..."
-                        if len(job.description) > 200
-                        else job.description,
-                        "posted_date": job.posted_date.isoformat()
-                        if job.posted_date
-                        else None,
+                        "description": job.description[:200] + "..." if len(job.description) > 200 else job.description,
+                        "posted_date": job.posted_date.isoformat() if job.posted_date else None,
                     }
                 )
 
@@ -279,9 +275,7 @@ class DatabaseTools:
                         "category": job.category,
                         "tags": job.tags,
                         "company_logo_url": job.company_logo_url,
-                        "posted_date": job.posted_date.isoformat()
-                        if job.posted_date
-                        else None,
+                        "posted_date": job.posted_date.isoformat() if job.posted_date else None,
                         "external_url": job.external_url,
                     },
                 }
@@ -326,9 +320,7 @@ class DatabaseTools:
                         "job_title": exp.job_title,
                         "company": exp.company,
                         "location": exp.location,
-                        "start_date": exp.start_date.isoformat()
-                        if exp.start_date
-                        else None,
+                        "start_date": exp.start_date.isoformat() if exp.start_date else None,
                         "end_date": exp.end_date.isoformat() if exp.end_date else None,
                         "description": exp.description,
                     }
@@ -342,9 +334,7 @@ class DatabaseTools:
                         "degree": edu.degree,
                         "field_of_study": edu.field_of_study,
                         "institution": edu.institution,
-                        "graduation_date": edu.graduation_date.isoformat()
-                        if edu.graduation_date
-                        else None,
+                        "graduation_date": edu.graduation_date.isoformat() if edu.graduation_date else None,
                     }
                 )
 

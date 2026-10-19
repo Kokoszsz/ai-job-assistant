@@ -5,12 +5,8 @@ Tests for password hashing, verification, and validation.
 """
 
 import pytest
-from src.utils.password import (
-    hash_password,
-    verify_password,
-    validate_password_strength,
-    PasswordValidationError
-)
+
+from src.utils.password import PasswordValidationError, hash_password, validate_password_strength, verify_password
 
 
 class TestPasswordValidation:
@@ -145,11 +141,11 @@ class TestPasswordVerification:
         """Test verifying multiple different passwords."""
         passwords = ["Password123", "AnotherPass456", "ThirdPass789"]
         hashes = [hash_password(p) for p in passwords]
-        
+
         # Each password should verify against its own hash
         for password, hashed in zip(passwords, hashes):
             assert verify_password(password, hashed) is True
-        
+
         # Each password should fail against other hashes
         assert verify_password(passwords[0], hashes[1]) is False
         assert verify_password(passwords[1], hashes[2]) is False
@@ -161,12 +157,7 @@ class TestPasswordEdgeCases:
 
     def test_password_with_special_characters(self):
         """Test passwords with special characters."""
-        passwords = [
-            "P@ssw0rd!",
-            "Test#Pass123",
-            "My$ecure1",
-            "Valid&Pass9"
-        ]
+        passwords = ["P@ssw0rd!", "Test#Pass123", "My$ecure1", "Valid&Pass9"]
         for password in passwords:
             hashed = hash_password(password)
             assert verify_password(password, hashed) is True

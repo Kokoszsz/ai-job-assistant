@@ -4,11 +4,11 @@ CV Generation Agent
 Specialized AI agent for generating professional CVs from user profiles.
 """
 
-import logging
 import json
+import logging
 import re
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -141,9 +141,7 @@ class CVGenerationAgent:
 
             # Set system prompt
             current_date = datetime.utcnow().strftime("%Y-%m-%d")
-            system_prompt = CV_GENERATION_SYSTEM_PROMPT.format(
-                current_date=current_date
-            )
+            system_prompt = CV_GENERATION_SYSTEM_PROMPT.format(current_date=current_date)
             self._agent.initialize_conversation(system_prompt=system_prompt)
 
         return self._agent
@@ -188,9 +186,7 @@ class CVGenerationAgent:
             logger.error(f"Error generating generic CV: {str(e)}")
             raise ValueError(f"Failed to generate CV: {str(e)}")
 
-    def generate_tailored_cv(
-        self, profile_context: Dict[str, Any], job_context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def generate_tailored_cv(self, profile_context: Dict[str, Any], job_context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generate a CV tailored to a specific job offer.
 
@@ -222,18 +218,14 @@ class CVGenerationAgent:
             # Parse JSON from response
             cv_content = self._parse_cv_response(response)
 
-            logger.info(
-                f"Successfully generated tailored CV for: {job_context.get('title')}"
-            )
+            logger.info(f"Successfully generated tailored CV for: {job_context.get('title')}")
             return cv_content
 
         except Exception as e:
             logger.error(f"Error generating tailored CV: {str(e)}")
             raise ValueError(f"Failed to generate tailored CV: {str(e)}")
 
-    def refine_section(
-        self, cv_content: Dict[str, Any], section_name: str, instruction: str
-    ) -> Dict[str, Any]:
+    def refine_section(self, cv_content: Dict[str, Any], section_name: str, instruction: str) -> Dict[str, Any]:
         """
         Refine a specific section of the CV based on user feedback.
 
@@ -304,9 +296,7 @@ Important:
 
         return prompt
 
-    def _build_tailored_prompt(
-        self, profile_context: Dict[str, Any], job_context: Dict[str, Any]
-    ) -> str:
+    def _build_tailored_prompt(self, profile_context: Dict[str, Any], job_context: Dict[str, Any]) -> str:
         """Build prompt for tailored CV generation."""
         prompt = f"""Generate a CV tailored specifically for this job opportunity. Emphasize experiences and skills most relevant to the role.
 

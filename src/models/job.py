@@ -5,21 +5,11 @@ Job offers and user's saved/favorite jobs.
 """
 
 from datetime import datetime
-from sqlalchemy import (
-    Column,
-    String,
-    Text,
-    Integer,
-    Boolean,
-    Date,
-    DateTime,
-    ForeignKey,
-    Index,
-    UniqueConstraint,
-    JSON,
-)
+
+from sqlalchemy import JSON, Boolean, Column, Date, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
-from src.models.base import db, BaseModel
+
+from src.models.base import BaseModel, db
 
 
 class JobOffer(BaseModel):
@@ -34,9 +24,7 @@ class JobOffer(BaseModel):
 
     JOB_TYPES = ["full-time", "part-time", "contract", "remote", "internship"]
 
-    external_id = Column(
-        String(100), unique=True, nullable=True
-    )  # External API ID (e.g., Remotive job ID)
+    external_id = Column(String(100), unique=True, nullable=True)  # External API ID (e.g., Remotive job ID)
     title = Column(String(200), nullable=False)
     company = Column(String(100), nullable=False)
     location = Column(String(100), nullable=False)
@@ -57,13 +45,9 @@ class JobOffer(BaseModel):
     company_logo_url = Column(String(500), nullable=True)  # Company logo URL
 
     # Relationships
-    favorited_by = relationship(
-        "FavoriteJob", back_populates="job_offer", cascade="all, delete-orphan"
-    )
+    favorited_by = relationship("FavoriteJob", back_populates="job_offer", cascade="all, delete-orphan")
     interview_preps = relationship("InterviewPrep", back_populates="job_offer")
-    tailored_cvs = relationship(
-        "CV", back_populates="job_offer", foreign_keys="CV.job_offer_id"
-    )
+    tailored_cvs = relationship("CV", back_populates="job_offer", foreign_keys="CV.job_offer_id")
 
     # Indexes for search and filtering
     __table_args__ = (
@@ -80,9 +64,7 @@ class JobOffer(BaseModel):
     )
 
     def __repr__(self):
-        return (
-            f"<JobOffer(id={self.id}, title='{self.title}', company='{self.company}')>"
-        )
+        return f"<JobOffer(id={self.id}, title='{self.title}', company='{self.company}')>"
 
     def to_dict(self, include_details=True):
         """Convert to dictionary."""
@@ -130,12 +112,8 @@ class FavoriteJob(BaseModel):
 
     __tablename__ = "favorite_jobs"
 
-    user_id = Column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
-    job_offer_id = Column(
-        Integer, ForeignKey("job_offers.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    job_offer_id = Column(Integer, ForeignKey("job_offers.id", ondelete="CASCADE"), nullable=False)
     notes = Column(Text, nullable=True)
     saved_at = Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
@@ -165,7 +143,5 @@ class FavoriteJob(BaseModel):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
         if include_job and self.job_offer:
-            data["job"] = (
-                self.job_offer.to_dict()
-            )  # Frontend expects 'job', not 'job_offer'
+            data["job"] = self.job_offer.to_dict()  # Frontend expects 'job', not 'job_offer'
         return data

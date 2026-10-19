@@ -7,20 +7,15 @@ Manage chat conversations and messages with AI assistant.
 import json
 import logging
 from functools import wraps
-from flask import (
-    Blueprint,
-    request,
-    jsonify,
-    current_app,
-    Response,
-    stream_with_context,
-)
-from src.models import db, Conversation, Message
-from src.middleware.auth_middleware import require_auth
-from src.services.ai_service import get_ai_service
-from src.services.profile_service import ProfileService
-from src.services.profile_context_builder import ProfileContextBuilder
+
+from flask import Blueprint, Response, current_app, jsonify, request, stream_with_context
+
 from src.ai.tools.database_tools import DatabaseTools
+from src.middleware.auth_middleware import require_auth
+from src.models import Conversation, Message, db
+from src.services.ai_service import get_ai_service
+from src.services.profile_context_builder import ProfileContextBuilder
+from src.services.profile_service import ProfileService
 
 logger = logging.getLogger(__name__)
 
@@ -68,15 +63,18 @@ def create_conversation(user_id, email):
 
         # Validate title length if provided
         if title and len(title) > 200:
-            return jsonify(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "INVALID_TITLE",
-                        "message": "Title must be 200 characters or less",
-                    },
-                }
-            ), 400
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": {
+                            "code": "INVALID_TITLE",
+                            "message": "Title must be 200 characters or less",
+                        },
+                    }
+                ),
+                400,
+            )
 
         # Create conversation
         conversation = Conversation(user_id=user_id, title=title, is_archived=False)
@@ -86,22 +84,23 @@ def create_conversation(user_id, email):
 
         logger.info(f"Created conversation {conversation.id} for user {user_id}")
 
-        return jsonify(
-            {"success": True, "data": {"conversation": conversation.to_dict()}}
-        ), 201
+        return jsonify({"success": True, "data": {"conversation": conversation.to_dict()}}), 201
 
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error creating conversation: {str(e)}")
-        return jsonify(
-            {
-                "success": False,
-                "error": {
-                    "code": "CONVERSATION_CREATE_FAILED",
-                    "message": "Failed to create conversation",
-                },
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "CONVERSATION_CREATE_FAILED",
+                        "message": "Failed to create conversation",
+                    },
+                }
+            ),
+            500,
+        )
 
 
 @chat_bp.route("/conversations", methods=["GET"])
@@ -137,46 +136,50 @@ def list_conversations(user_id, email):
         total = query.count()
 
         # Apply pagination and ordering
-        conversations = (
-            query.order_by(Conversation.updated_at.desc())
-            .limit(limit)
-            .offset(offset)
-            .all()
+        conversations = query.order_by(Conversation.updated_at.desc()).limit(limit).offset(offset).all()
+
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "data": {
+                        "conversations": [conv.to_dict() for conv in conversations],
+                        "total": total,
+                        "limit": limit,
+                        "offset": offset,
+                    },
+                }
+            ),
+            200,
         )
 
-        return jsonify(
-            {
-                "success": True,
-                "data": {
-                    "conversations": [conv.to_dict() for conv in conversations],
-                    "total": total,
-                    "limit": limit,
-                    "offset": offset,
-                },
-            }
-        ), 200
-
     except ValueError as e:
-        return jsonify(
-            {
-                "success": False,
-                "error": {
-                    "code": "INVALID_PARAMETERS",
-                    "message": "Invalid query parameters",
-                },
-            }
-        ), 400
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "INVALID_PARAMETERS",
+                        "message": "Invalid query parameters",
+                    },
+                }
+            ),
+            400,
+        )
     except Exception as e:
         logger.error(f"Error listing conversations: {str(e)}")
-        return jsonify(
-            {
-                "success": False,
-                "error": {
-                    "code": "CONVERSATIONS_LIST_FAILED",
-                    "message": "Failed to list conversations",
-                },
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "CONVERSATIONS_LIST_FAILED",
+                        "message": "Failed to list conversations",
+                    },
+                }
+            ),
+            500,
+        )
 
 
 @chat_bp.route("/conversations/<int:conversation_id>", methods=["DELETE"])
@@ -193,32 +196,36 @@ def delete_conversation(user_id, email, conversation_id):
     """
     try:
         # Get conversation
-        conversation = Conversation.query.filter_by(
-            id=conversation_id, user_id=user_id
-        ).first()
+        conversation = Conversation.query.filter_by(id=conversation_id, user_id=user_id).first()
 
         if not conversation:
-            return jsonify(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "CONVERSATION_NOT_FOUND",
-                        "message": "Conversation not found",
-                    },
-                }
-            ), 404
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": {
+                            "code": "CONVERSATION_NOT_FOUND",
+                            "message": "Conversation not found",
+                        },
+                    }
+                ),
+                404,
+            )
 
         # Check if already deleted
         if conversation.is_deleted:
-            return jsonify(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "ALREADY_DELETED",
-                        "message": "Conversation is already deleted",
-                    },
-                }
-            ), 400
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": {
+                            "code": "ALREADY_DELETED",
+                            "message": "Conversation is already deleted",
+                        },
+                    }
+                ),
+                400,
+            )
 
         # Soft delete (set flag instead of removing)
         conversation.is_deleted = True
@@ -226,22 +233,23 @@ def delete_conversation(user_id, email, conversation_id):
 
         logger.info(f"Soft deleted conversation {conversation_id} for user {user_id}")
 
-        return jsonify(
-            {"success": True, "message": "Conversation deleted successfully"}
-        ), 200
+        return jsonify({"success": True, "message": "Conversation deleted successfully"}), 200
 
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error deleting conversation: {str(e)}")
-        return jsonify(
-            {
-                "success": False,
-                "error": {
-                    "code": "CONVERSATION_DELETE_FAILED",
-                    "message": "Failed to delete conversation",
-                },
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "CONVERSATION_DELETE_FAILED",
+                        "message": "Failed to delete conversation",
+                    },
+                }
+            ),
+            500,
+        )
 
 
 @chat_bp.route("/conversations/<int:conversation_id>/messages", methods=["GET"])
@@ -265,27 +273,33 @@ def get_messages(user_id, email, conversation_id):
         conversation = Conversation.query.get(conversation_id)
 
         if not conversation:
-            return jsonify(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "CONVERSATION_NOT_FOUND",
-                        "message": "Conversation not found",
-                    },
-                }
-            ), 404
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": {
+                            "code": "CONVERSATION_NOT_FOUND",
+                            "message": "Conversation not found",
+                        },
+                    }
+                ),
+                404,
+            )
 
         # Check ownership
         if conversation.user_id != user_id:
-            return jsonify(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "FORBIDDEN",
-                        "message": "You do not have access to this conversation",
-                    },
-                }
-            ), 403
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": {
+                            "code": "FORBIDDEN",
+                            "message": "You do not have access to this conversation",
+                        },
+                    }
+                ),
+                403,
+            )
 
         # Parse pagination parameters
         limit = min(int(request.args.get("limit", 50)), 100)
@@ -295,43 +309,50 @@ def get_messages(user_id, email, conversation_id):
         query = Message.query.filter_by(conversation_id=conversation_id)
         total = query.count()
 
-        messages = (
-            query.order_by(Message.created_at.asc()).limit(limit).offset(offset).all()
+        messages = query.order_by(Message.created_at.asc()).limit(limit).offset(offset).all()
+
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "data": {
+                        "messages": [msg.to_dict() for msg in messages],
+                        "total": total,
+                        "limit": limit,
+                        "offset": offset,
+                    },
+                }
+            ),
+            200,
         )
 
-        return jsonify(
-            {
-                "success": True,
-                "data": {
-                    "messages": [msg.to_dict() for msg in messages],
-                    "total": total,
-                    "limit": limit,
-                    "offset": offset,
-                },
-            }
-        ), 200
-
     except ValueError:
-        return jsonify(
-            {
-                "success": False,
-                "error": {
-                    "code": "INVALID_PARAMETERS",
-                    "message": "Invalid query parameters",
-                },
-            }
-        ), 400
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "INVALID_PARAMETERS",
+                        "message": "Invalid query parameters",
+                    },
+                }
+            ),
+            400,
+        )
     except Exception as e:
         logger.error(f"Error getting messages: {str(e)}")
-        return jsonify(
-            {
-                "success": False,
-                "error": {
-                    "code": "MESSAGES_GET_FAILED",
-                    "message": "Failed to get messages",
-                },
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "MESSAGES_GET_FAILED",
+                        "message": "Failed to get messages",
+                    },
+                }
+            ),
+            500,
+        )
 
 
 @chat_bp.route("/conversations/<int:conversation_id>/messages", methods=["POST"])
@@ -357,83 +378,99 @@ def send_message(user_id, email, conversation_id):
         # Validate request body
         data = request.get_json()
         if not data:
-            return jsonify(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "MISSING_REQUEST_BODY",
-                        "message": "Request body is required",
-                    },
-                }
-            ), 400
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": {
+                            "code": "MISSING_REQUEST_BODY",
+                            "message": "Request body is required",
+                        },
+                    }
+                ),
+                400,
+            )
 
         content = data.get("content", "").strip()
         if not content:
-            return jsonify(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "MISSING_CONTENT",
-                        "message": "Message content is required",
-                    },
-                }
-            ), 400
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": {
+                            "code": "MISSING_CONTENT",
+                            "message": "Message content is required",
+                        },
+                    }
+                ),
+                400,
+            )
 
         # Validate content length
         if len(content) > Message.MAX_CONTENT_LENGTH:
-            return jsonify(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "CONTENT_TOO_LONG",
-                        "message": f"Message content must be {Message.MAX_CONTENT_LENGTH} characters or less",
-                    },
-                }
-            ), 400
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": {
+                            "code": "CONTENT_TOO_LONG",
+                            "message": f"Message content must be {Message.MAX_CONTENT_LENGTH} characters or less",
+                        },
+                    }
+                ),
+                400,
+            )
 
         # Get conversation
         conversation = Conversation.query.get(conversation_id)
 
         if not conversation:
-            return jsonify(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "CONVERSATION_NOT_FOUND",
-                        "message": "Conversation not found",
-                    },
-                }
-            ), 404
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": {
+                            "code": "CONVERSATION_NOT_FOUND",
+                            "message": "Conversation not found",
+                        },
+                    }
+                ),
+                404,
+            )
 
         # Check ownership
         if conversation.user_id != user_id:
-            return jsonify(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "FORBIDDEN",
-                        "message": "You do not have access to this conversation",
-                    },
-                }
-            ), 403
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": {
+                            "code": "FORBIDDEN",
+                            "message": "You do not have access to this conversation",
+                        },
+                    }
+                ),
+                403,
+            )
 
         # Check AI service availability
         ai_service = get_ai_service()
         if not ai_service or not ai_service.is_available():
-            return jsonify(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "AI_UNAVAILABLE",
-                        "message": "AI service is currently unavailable",
-                    },
-                }
-            ), 503
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": {
+                            "code": "AI_UNAVAILABLE",
+                            "message": "AI service is currently unavailable",
+                        },
+                    }
+                ),
+                503,
+            )
 
         # Create user message
-        user_message = Message(
-            conversation_id=conversation_id, role="user", content=content
-        )
+        user_message = Message(conversation_id=conversation_id, role="user", content=content)
         db.session.add(user_message)
         db.session.flush()  # Get ID without committing
 
@@ -445,9 +482,7 @@ def send_message(user_id, email, conversation_id):
             # Build user context from profile
             user_context = ""
             if profile_data:
-                user_context = ProfileContextBuilder.build_user_context(
-                    user_id, profile_data
-                )
+                user_context = ProfileContextBuilder.build_user_context(user_id, profile_data)
 
             # Create agent with default settings
             agent = ai_service.create_agent()
@@ -465,9 +500,7 @@ def send_message(user_id, email, conversation_id):
 
             # Load previous messages for context
             previous_messages = (
-                Message.query.filter_by(conversation_id=conversation_id)
-                .order_by(Message.created_at.asc())
-                .all()
+                Message.query.filter_by(conversation_id=conversation_id).order_by(Message.created_at.asc()).all()
             )
 
             # Add conversation history to agent (excluding the user message we just added)
@@ -512,17 +545,13 @@ def send_message(user_id, email, conversation_id):
                         agent.add_function_result(tool_name, tool_result)
 
                         # Get final response from AI after tool execution
-                        ai_response = agent.send_message(
-                            f"Tool {tool_name} returned: {tool_result}"
-                        )
+                        ai_response = agent.send_message(f"Tool {tool_name} returned: {tool_result}")
                     except Exception as tool_error:
                         logger.error(f"Tool execution error: {str(tool_error)}")
                         # Continue with original response if tool fails
 
             # Create assistant message
-            assistant_message = Message(
-                conversation_id=conversation_id, role="assistant", content=ai_response
-            )
+            assistant_message = Message(conversation_id=conversation_id, role="assistant", content=ai_response)
             db.session.add(assistant_message)
 
             # Update conversation title if not set
@@ -537,42 +566,51 @@ def send_message(user_id, email, conversation_id):
 
             logger.info(f"Processed message in conversation {conversation_id}")
 
-            return jsonify(
-                {
-                    "success": True,
-                    "data": {
-                        "user_message": user_message.to_dict(),
-                        "assistant_message": assistant_message.to_dict(),
-                    },
-                }
-            ), 201
+            return (
+                jsonify(
+                    {
+                        "success": True,
+                        "data": {
+                            "user_message": user_message.to_dict(),
+                            "assistant_message": assistant_message.to_dict(),
+                        },
+                    }
+                ),
+                201,
+            )
 
         except Exception as ai_error:
             logger.error(f"AI error: {str(ai_error)}")
             # Rollback the user message if AI fails
             db.session.rollback()
-            return jsonify(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "AI_PROCESSING_ERROR",
-                        "message": "Failed to process message with AI",
-                    },
-                }
-            ), 500
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": {
+                            "code": "AI_PROCESSING_ERROR",
+                            "message": "Failed to process message with AI",
+                        },
+                    }
+                ),
+                500,
+            )
 
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error sending message: {str(e)}")
-        return jsonify(
-            {
-                "success": False,
-                "error": {
-                    "code": "MESSAGE_SEND_FAILED",
-                    "message": "Failed to send message",
-                },
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "MESSAGE_SEND_FAILED",
+                        "message": "Failed to send message",
+                    },
+                }
+            ),
+            500,
+        )
 
 
 @chat_bp.route("/conversations/<int:conversation_id>/messages/stream", methods=["POST"])
@@ -597,78 +635,96 @@ def send_message_stream(user_id, email, conversation_id):
     # Validate request body
     data = request.get_json()
     if not data:
-        return jsonify(
-            {
-                "success": False,
-                "error": {
-                    "code": "MISSING_REQUEST_BODY",
-                    "message": "Request body is required",
-                },
-            }
-        ), 400
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "MISSING_REQUEST_BODY",
+                        "message": "Request body is required",
+                    },
+                }
+            ),
+            400,
+        )
 
     content = data.get("content", "").strip()
     if not content:
-        return jsonify(
-            {
-                "success": False,
-                "error": {
-                    "code": "MISSING_CONTENT",
-                    "message": "Message content is required",
-                },
-            }
-        ), 400
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "MISSING_CONTENT",
+                        "message": "Message content is required",
+                    },
+                }
+            ),
+            400,
+        )
 
     # Validate content length
     if len(content) > Message.MAX_CONTENT_LENGTH:
-        return jsonify(
-            {
-                "success": False,
-                "error": {
-                    "code": "CONTENT_TOO_LONG",
-                    "message": f"Message content must be {Message.MAX_CONTENT_LENGTH} characters or less",
-                },
-            }
-        ), 400
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "CONTENT_TOO_LONG",
+                        "message": f"Message content must be {Message.MAX_CONTENT_LENGTH} characters or less",
+                    },
+                }
+            ),
+            400,
+        )
 
     # Get conversation
     conversation = Conversation.query.get(conversation_id)
 
     if not conversation:
-        return jsonify(
-            {
-                "success": False,
-                "error": {
-                    "code": "CONVERSATION_NOT_FOUND",
-                    "message": "Conversation not found",
-                },
-            }
-        ), 404
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "CONVERSATION_NOT_FOUND",
+                        "message": "Conversation not found",
+                    },
+                }
+            ),
+            404,
+        )
 
     # Check ownership
     if conversation.user_id != user_id:
-        return jsonify(
-            {
-                "success": False,
-                "error": {
-                    "code": "FORBIDDEN",
-                    "message": "You do not have access to this conversation",
-                },
-            }
-        ), 403
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "FORBIDDEN",
+                        "message": "You do not have access to this conversation",
+                    },
+                }
+            ),
+            403,
+        )
 
     # Check AI service availability
     ai_service = get_ai_service()
     if not ai_service or not ai_service.is_available():
-        return jsonify(
-            {
-                "success": False,
-                "error": {
-                    "code": "AI_UNAVAILABLE",
-                    "message": "AI service is currently unavailable",
-                },
-            }
-        ), 503
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "AI_UNAVAILABLE",
+                        "message": "AI service is currently unavailable",
+                    },
+                }
+            ),
+            503,
+        )
 
     def generate_stream():
         """Generator function for SSE stream."""
@@ -678,16 +734,12 @@ def send_message_stream(user_id, email, conversation_id):
 
         try:
             # Create user message
-            user_message = Message(
-                conversation_id=conversation_id, role="user", content=content
-            )
+            user_message = Message(conversation_id=conversation_id, role="user", content=content)
             db.session.add(user_message)
             db.session.flush()
 
             # Create empty assistant message placeholder
-            assistant_message = Message(
-                conversation_id=conversation_id, role="assistant", content=""
-            )
+            assistant_message = Message(conversation_id=conversation_id, role="assistant", content="")
             db.session.add(assistant_message)
             db.session.flush()
 
@@ -703,9 +755,7 @@ def send_message_stream(user_id, email, conversation_id):
             # Build user context from profile
             user_context = ""
             if profile_data:
-                user_context = ProfileContextBuilder.build_user_context(
-                    user_id, profile_data
-                )
+                user_context = ProfileContextBuilder.build_user_context(user_id, profile_data)
 
             # Create agent
             agent = ai_service.create_agent()
@@ -770,17 +820,13 @@ def send_message_stream(user_id, email, conversation_id):
                         agent.add_function_result(tool_name, tool_result)
 
                         # Stream the final response from OpenAI
-                        for chunk in agent.send_message_stream_sync(
-                            f"Tool {tool_name} returned: {tool_result}"
-                        ):
+                        for chunk in agent.send_message_stream_sync(f"Tool {tool_name} returned: {tool_result}"):
                             full_response += chunk
                             yield f"event: content_delta\ndata: {json.dumps({'delta': chunk})}\n\n"
 
                         tool_executed = True
                     except Exception as tool_error:
-                        logger.error(
-                            f"Tool execution error in stream: {str(tool_error)}"
-                        )
+                        logger.error(f"Tool execution error in stream: {str(tool_error)}")
                         # Fall back to non-streaming response
                         for i in range(0, len(initial_response), 20):
                             chunk = initial_response[i : i + 20]

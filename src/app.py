@@ -5,21 +5,21 @@ Flask application factory with SQLAlchemy, migrations, and full middleware stack
 """
 
 import os
+
 from flask import Flask
 from flask_cors import CORS
 from flask_migrate import Migrate
 
-from src.models import db
-from src.config import get_config
-from src.middleware import setup_logging, register_error_handlers, setup_rate_limiting
 from src.api import health_bp
 from src.api.auth import auth_bp
-from src.api.profile import profile_bp
-from src.api.jobs import jobs_bp
 from src.api.chat import chat_bp
 from src.api.cv import cv_bp
+from src.api.jobs import jobs_bp
+from src.api.profile import profile_bp
 from src.cli import register_cli_commands
-
+from src.config import get_config
+from src.middleware import register_error_handlers, setup_logging, setup_rate_limiting
+from src.models import db
 
 # Initialize Flask-Migrate globally
 migrate = Migrate()

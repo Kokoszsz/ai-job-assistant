@@ -6,18 +6,12 @@ Business logic for profile management.
 
 import logging
 from datetime import date
-from typing import Optional, Dict, Any, List
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+
 from src.models.base import db
-from src.models.profile import (
-    Profile,
-    WorkExperience,
-    Education,
-    Skill,
-    Certification,
-    Project,
-    Language,
-)
+from src.models.profile import Certification, Education, Language, Profile, Project, Skill, WorkExperience
 from src.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -27,9 +21,7 @@ class ProfileService:
     """Service for managing user profiles."""
 
     @staticmethod
-    def get_profile(
-        user_id: int, include_details: bool = False
-    ) -> Optional[Dict[str, Any]]:
+    def get_profile(user_id: int, include_details: bool = False) -> Optional[Dict[str, Any]]:
         """
         Get user's profile.
 
@@ -52,15 +44,11 @@ class ProfileService:
         except SQLAlchemyError as e:
             # If there's a database error (e.g., missing tables), rollback and log
             db.session.rollback()
-            logger.error(
-                f"Database error getting profile for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error getting profile for user_id={user_id}: {str(e)}")
             raise
 
     @staticmethod
-    def create_profile(
-        user_id: int, data: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    def create_profile(user_id: int, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Create a new profile for a user.
 
@@ -104,9 +92,7 @@ class ProfileService:
             raise
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(
-                f"Database error creating profile for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error creating profile for user_id={user_id}: {str(e)}")
             raise
 
     @staticmethod
@@ -156,9 +142,7 @@ class ProfileService:
             raise
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(
-                f"Database error updating profile for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error updating profile for user_id={user_id}: {str(e)}")
             raise
 
     @staticmethod
@@ -182,15 +166,11 @@ class ProfileService:
             return {"user_id": user_id, "preferences": profile.preferences_json or {}}
 
         except SQLAlchemyError as e:
-            logger.error(
-                f"Database error getting preferences for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error getting preferences for user_id={user_id}: {str(e)}")
             raise
 
     @staticmethod
-    def update_preferences(
-        user_id: int, preferences: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    def update_preferences(user_id: int, preferences: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Update user's job preferences.
 
@@ -229,22 +209,14 @@ class ProfileService:
                     raise ValueError("job_types must be a list")
                 for job_type in job_types:
                     if job_type not in valid_types:
-                        raise ValueError(
-                            f"Invalid job_type: {job_type}. Must be one of {valid_types}"
-                        )
+                        raise ValueError(f"Invalid job_type: {job_type}. Must be one of {valid_types}")
 
             if "min_salary" in preferences and preferences["min_salary"] is not None:
-                if (
-                    not isinstance(preferences["min_salary"], (int, float))
-                    or preferences["min_salary"] < 0
-                ):
+                if not isinstance(preferences["min_salary"], (int, float)) or preferences["min_salary"] < 0:
                     raise ValueError("min_salary must be a non-negative number")
 
             if "max_salary" in preferences and preferences["max_salary"] is not None:
-                if (
-                    not isinstance(preferences["max_salary"], (int, float))
-                    or preferences["max_salary"] < 0
-                ):
+                if not isinstance(preferences["max_salary"], (int, float)) or preferences["max_salary"] < 0:
                     raise ValueError("max_salary must be a non-negative number")
 
             if "min_salary" in preferences and "max_salary" in preferences:
@@ -264,9 +236,7 @@ class ProfileService:
             raise
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(
-                f"Database error updating preferences for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error updating preferences for user_id={user_id}: {str(e)}")
             raise
 
     @staticmethod
@@ -295,9 +265,7 @@ class ProfileService:
 
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(
-                f"Database error deleting profile for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error deleting profile for user_id={user_id}: {str(e)}")
             raise
 
     # Work Experience Methods
@@ -323,9 +291,7 @@ class ProfileService:
             return [exp.to_dict() for exp in profile.work_experiences]
 
         except SQLAlchemyError as e:
-            logger.error(
-                f"Database error getting work experiences for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error getting work experiences for user_id={user_id}: {str(e)}")
             raise
 
     @staticmethod
@@ -353,9 +319,7 @@ class ProfileService:
             required_fields = ["job_title", "company", "start_date"]
             missing_fields = [f for f in required_fields if not data.get(f)]
             if missing_fields:
-                raise ValueError(
-                    f"Missing required fields: {', '.join(missing_fields)}"
-                )
+                raise ValueError(f"Missing required fields: {', '.join(missing_fields)}")
 
             # Validate field lengths
             if len(data["job_title"]) > 100:
@@ -367,16 +331,12 @@ class ProfileService:
 
             # Parse dates
             start_date = (
-                date.fromisoformat(data["start_date"])
-                if isinstance(data["start_date"], str)
-                else data["start_date"]
+                date.fromisoformat(data["start_date"]) if isinstance(data["start_date"], str) else data["start_date"]
             )
             end_date = None
             if data.get("end_date"):
                 end_date = (
-                    date.fromisoformat(data["end_date"])
-                    if isinstance(data["end_date"], str)
-                    else data["end_date"]
+                    date.fromisoformat(data["end_date"]) if isinstance(data["end_date"], str) else data["end_date"]
                 )
 
                 # Validate date range
@@ -396,24 +356,18 @@ class ProfileService:
             db.session.add(experience)
             db.session.commit()
 
-            logger.info(
-                f"Added work experience for user_id={user_id}, experience_id={experience.id}"
-            )
+            logger.info(f"Added work experience for user_id={user_id}, experience_id={experience.id}")
             return experience.to_dict()
 
         except ValueError:
             raise
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(
-                f"Database error adding work experience for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error adding work experience for user_id={user_id}: {str(e)}")
             raise
 
     @staticmethod
-    def update_work_experience(
-        user_id: int, experience_id: int, data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    def update_work_experience(user_id: int, experience_id: int, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Update a work experience entry.
 
@@ -437,16 +391,10 @@ class ProfileService:
                 return None
 
             # Get work experience and verify ownership
-            experience = (
-                db.session.query(WorkExperience)
-                .filter_by(id=experience_id, profile_id=profile.id)
-                .first()
-            )
+            experience = db.session.query(WorkExperience).filter_by(id=experience_id, profile_id=profile.id).first()
 
             if not experience:
-                logger.warning(
-                    f"Work experience {experience_id} not found or not owned by user {user_id}"
-                )
+                logger.warning(f"Work experience {experience_id} not found or not owned by user {user_id}")
                 return None
 
             # Validate and update fields
@@ -482,32 +430,24 @@ class ProfileService:
             if "end_date" in data:
                 if data["end_date"]:
                     end_date = (
-                        date.fromisoformat(data["end_date"])
-                        if isinstance(data["end_date"], str)
-                        else data["end_date"]
+                        date.fromisoformat(data["end_date"]) if isinstance(data["end_date"], str) else data["end_date"]
                     )
                     if end_date < experience.start_date:
                         raise ValueError("End date must be after start date")
                     experience.end_date = end_date
                 else:
-                    experience.end_date = (
-                        None  # Allow setting to None for current position
-                    )
+                    experience.end_date = None  # Allow setting to None for current position
 
             db.session.commit()
 
-            logger.info(
-                f"Updated work experience {experience_id} for user_id={user_id}"
-            )
+            logger.info(f"Updated work experience {experience_id} for user_id={user_id}")
             return experience.to_dict()
 
         except ValueError:
             raise
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(
-                f"Database error updating work experience {experience_id}: {str(e)}"
-            )
+            logger.error(f"Database error updating work experience {experience_id}: {str(e)}")
             raise
 
     @staticmethod
@@ -531,31 +471,21 @@ class ProfileService:
                 return False
 
             # Get and verify ownership
-            experience = (
-                db.session.query(WorkExperience)
-                .filter_by(id=experience_id, profile_id=profile.id)
-                .first()
-            )
+            experience = db.session.query(WorkExperience).filter_by(id=experience_id, profile_id=profile.id).first()
 
             if not experience:
-                logger.warning(
-                    f"Work experience {experience_id} not found or not owned by user {user_id}"
-                )
+                logger.warning(f"Work experience {experience_id} not found or not owned by user {user_id}")
                 return False
 
             db.session.delete(experience)
             db.session.commit()
 
-            logger.info(
-                f"Deleted work experience {experience_id} for user_id={user_id}"
-            )
+            logger.info(f"Deleted work experience {experience_id} for user_id={user_id}")
             return True
 
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(
-                f"Database error deleting work experience {experience_id}: {str(e)}"
-            )
+            logger.error(f"Database error deleting work experience {experience_id}: {str(e)}")
             raise
 
     # ===== Education Management =====
@@ -581,9 +511,7 @@ class ProfileService:
             return [edu.to_dict() for edu in profile.education]
 
         except SQLAlchemyError as e:
-            logger.error(
-                f"Database error retrieving education for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error retrieving education for user_id={user_id}: {str(e)}")
             raise
 
     @staticmethod
@@ -650,24 +578,18 @@ class ProfileService:
             db.session.add(education)
             db.session.commit()
 
-            logger.info(
-                f"Added education for user_id={user_id}: {education.degree} at {education.institution}"
-            )
+            logger.info(f"Added education for user_id={user_id}: {education.degree} at {education.institution}")
             return education.to_dict()
 
         except ValueError:
             raise
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(
-                f"Database error adding education for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error adding education for user_id={user_id}: {str(e)}")
             raise
 
     @staticmethod
-    def update_education(
-        user_id: int, education_id: int, data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def update_education(user_id: int, education_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Update education entry.
 
@@ -690,11 +612,7 @@ class ProfileService:
                 raise ValueError("Profile not found")
 
             # Get education (verify ownership)
-            education = (
-                db.session.query(Education)
-                .filter_by(id=education_id, profile_id=profile.id)
-                .first()
-            )
+            education = db.session.query(Education).filter_by(id=education_id, profile_id=profile.id).first()
 
             if not education:
                 raise ValueError("Education not found")
@@ -748,9 +666,7 @@ class ProfileService:
             raise
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(
-                f"Database error updating education {education_id} for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error updating education {education_id} for user_id={user_id}: {str(e)}")
             raise
 
     @staticmethod
@@ -776,16 +692,10 @@ class ProfileService:
                 return False
 
             # Get education (verify ownership)
-            education = (
-                db.session.query(Education)
-                .filter_by(id=education_id, profile_id=profile.id)
-                .first()
-            )
+            education = db.session.query(Education).filter_by(id=education_id, profile_id=profile.id).first()
 
             if not education:
-                logger.warning(
-                    f"Education {education_id} not found for user_id={user_id}"
-                )
+                logger.warning(f"Education {education_id} not found for user_id={user_id}")
                 return False
 
             db.session.delete(education)
@@ -822,9 +732,7 @@ class ProfileService:
             return [skill.to_dict() for skill in profile.skills]
 
         except SQLAlchemyError as e:
-            logger.error(
-                f"Database error retrieving skills for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error retrieving skills for user_id={user_id}: {str(e)}")
             raise
 
     @staticmethod
@@ -860,9 +768,7 @@ class ProfileService:
             # Validate proficiency level
             proficiency_level = data.get("proficiency_level", "intermediate")
             if proficiency_level not in Skill.PROFICIENCY_LEVELS:
-                raise ValueError(
-                    f"proficiency_level must be one of: {', '.join(Skill.PROFICIENCY_LEVELS)}"
-                )
+                raise ValueError(f"proficiency_level must be one of: {', '.join(Skill.PROFICIENCY_LEVELS)}")
 
             # Create skill
             skill = Skill(
@@ -880,13 +786,11 @@ class ProfileService:
         except IntegrityError as e:
             db.session.rollback()
             # Check if it's a duplicate skill
-            if "uq_skill_profile_name" in str(
+            if "uq_skill_profile_name" in str(e) or "UNIQUE constraint failed: skills.profile_id, skills.name" in str(
                 e
-            ) or "UNIQUE constraint failed: skills.profile_id, skills.name" in str(e):
+            ):
                 raise ValueError(f"Skill '{data.get('name')}' already exists")
-            logger.error(
-                f"Database integrity error adding skill for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database integrity error adding skill for user_id={user_id}: {str(e)}")
             raise SQLAlchemyError(str(e))
         except ValueError:
             raise
@@ -896,9 +800,7 @@ class ProfileService:
             raise
 
     @staticmethod
-    def add_skills_bulk(
-        user_id: int, skills_data: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+    def add_skills_bulk(user_id: int, skills_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Add multiple skills to user's profile.
 
@@ -934,30 +836,20 @@ class ProfileService:
 
                     # Validate field length
                     if len(skill_data["name"]) > 50:
-                        errors.append(
-                            f"Skill {idx}: name must be 50 characters or less"
-                        )
+                        errors.append(f"Skill {idx}: name must be 50 characters or less")
                         continue
 
                     # Validate proficiency level
-                    proficiency_level = skill_data.get(
-                        "proficiency_level", "intermediate"
-                    )
+                    proficiency_level = skill_data.get("proficiency_level", "intermediate")
                     if proficiency_level not in Skill.PROFICIENCY_LEVELS:
                         errors.append(f"Skill {idx}: invalid proficiency_level")
                         continue
 
                     # Check for duplicate in existing skills
-                    existing = (
-                        db.session.query(Skill)
-                        .filter_by(profile_id=profile.id, name=skill_data["name"])
-                        .first()
-                    )
+                    existing = db.session.query(Skill).filter_by(profile_id=profile.id, name=skill_data["name"]).first()
 
                     if existing:
-                        errors.append(
-                            f"Skill {idx}: '{skill_data['name']}' already exists"
-                        )
+                        errors.append(f"Skill {idx}: '{skill_data['name']}' already exists")
                         continue
 
                     # Create skill
@@ -984,9 +876,7 @@ class ProfileService:
                     f"Bulk add skills for user_id={user_id}: {len(created_skills)} succeeded, {len(errors)} failed"
                 )
             else:
-                logger.info(
-                    f"Bulk added {len(created_skills)} skills for user_id={user_id}"
-                )
+                logger.info(f"Bulk added {len(created_skills)} skills for user_id={user_id}")
 
             return result
 
@@ -994,9 +884,7 @@ class ProfileService:
             raise
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(
-                f"Database error bulk adding skills for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error bulk adding skills for user_id={user_id}: {str(e)}")
             raise
 
     @staticmethod
@@ -1022,11 +910,7 @@ class ProfileService:
                 return False
 
             # Get skill (verify ownership)
-            skill = (
-                db.session.query(Skill)
-                .filter_by(id=skill_id, profile_id=profile.id)
-                .first()
-            )
+            skill = db.session.query(Skill).filter_by(id=skill_id, profile_id=profile.id).first()
 
             if not skill:
                 logger.warning(f"Skill {skill_id} not found for user_id={user_id}")
@@ -1072,11 +956,7 @@ class ProfileService:
             failed_ids = []
 
             for skill_id in skill_ids:
-                skill = (
-                    db.session.query(Skill)
-                    .filter_by(id=skill_id, profile_id=profile.id)
-                    .first()
-                )
+                skill = db.session.query(Skill).filter_by(id=skill_id, profile_id=profile.id).first()
 
                 if skill:
                     db.session.delete(skill)
@@ -1093,9 +973,7 @@ class ProfileService:
             raise
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(
-                f"Database error bulk deleting skills for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error bulk deleting skills for user_id={user_id}: {str(e)}")
             raise
 
     # ===== Certifications Management =====
@@ -1121,9 +999,7 @@ class ProfileService:
             return [cert.to_dict() for cert in profile.certifications]
 
         except SQLAlchemyError as e:
-            logger.error(
-                f"Database error retrieving certifications for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error retrieving certifications for user_id={user_id}: {str(e)}")
             raise
 
     @staticmethod
@@ -1183,24 +1059,18 @@ class ProfileService:
             db.session.add(certification)
             db.session.commit()
 
-            logger.info(
-                f"Added certification for user_id={user_id}: {certification.name}"
-            )
+            logger.info(f"Added certification for user_id={user_id}: {certification.name}")
             return certification.to_dict()
 
         except ValueError:
             raise
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(
-                f"Database error adding certification for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error adding certification for user_id={user_id}: {str(e)}")
             raise
 
     @staticmethod
-    def update_certification(
-        user_id: int, certification_id: int, data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    def update_certification(user_id: int, certification_id: int, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Update a certification.
 
@@ -1218,9 +1088,7 @@ class ProfileService:
                 return None
 
             certification = (
-                db.session.query(Certification)
-                .filter_by(id=certification_id, profile_id=profile.id)
-                .first()
+                db.session.query(Certification).filter_by(id=certification_id, profile_id=profile.id).first()
             )
 
             if not certification:
@@ -1229,16 +1097,12 @@ class ProfileService:
             # Update fields
             if "name" in data:
                 if len(data["name"]) > 200:
-                    raise ValueError(
-                        "Certification name must be 200 characters or less"
-                    )
+                    raise ValueError("Certification name must be 200 characters or less")
                 certification.name = data["name"]
 
             if "issuing_organization" in data:
                 if len(data["issuing_organization"]) > 200:
-                    raise ValueError(
-                        "Issuing organization must be 200 characters or less"
-                    )
+                    raise ValueError("Issuing organization must be 200 characters or less")
                 certification.issuing_organization = data["issuing_organization"]
 
             if "issue_date" in data:
@@ -1261,18 +1125,14 @@ class ProfileService:
 
             db.session.commit()
 
-            logger.info(
-                f"Updated certification {certification_id} for user_id={user_id}"
-            )
+            logger.info(f"Updated certification {certification_id} for user_id={user_id}")
             return certification.to_dict()
 
         except ValueError:
             raise
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(
-                f"Database error updating certification {certification_id}: {str(e)}"
-            )
+            logger.error(f"Database error updating certification {certification_id}: {str(e)}")
             raise
 
     @staticmethod
@@ -1293,9 +1153,7 @@ class ProfileService:
                 return False
 
             certification = (
-                db.session.query(Certification)
-                .filter_by(id=certification_id, profile_id=profile.id)
-                .first()
+                db.session.query(Certification).filter_by(id=certification_id, profile_id=profile.id).first()
             )
 
             if not certification:
@@ -1304,16 +1162,12 @@ class ProfileService:
             db.session.delete(certification)
             db.session.commit()
 
-            logger.info(
-                f"Deleted certification {certification_id} for user_id={user_id}"
-            )
+            logger.info(f"Deleted certification {certification_id} for user_id={user_id}")
             return True
 
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(
-                f"Database error deleting certification {certification_id}: {str(e)}"
-            )
+            logger.error(f"Database error deleting certification {certification_id}: {str(e)}")
             raise
 
     # ===== Projects Management =====
@@ -1339,9 +1193,7 @@ class ProfileService:
             return [proj.to_dict() for proj in profile.projects]
 
         except SQLAlchemyError as e:
-            logger.error(
-                f"Database error retrieving projects for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error retrieving projects for user_id={user_id}: {str(e)}")
             raise
 
     @staticmethod
@@ -1409,15 +1261,11 @@ class ProfileService:
             raise
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(
-                f"Database error adding project for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error adding project for user_id={user_id}: {str(e)}")
             raise
 
     @staticmethod
-    def update_project(
-        user_id: int, project_id: int, data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    def update_project(user_id: int, project_id: int, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Update a project.
 
@@ -1434,11 +1282,7 @@ class ProfileService:
             if not profile:
                 return None
 
-            project = (
-                db.session.query(Project)
-                .filter_by(id=project_id, profile_id=profile.id)
-                .first()
-            )
+            project = db.session.query(Project).filter_by(id=project_id, profile_id=profile.id).first()
 
             if not project:
                 return None
@@ -1508,11 +1352,7 @@ class ProfileService:
             if not profile:
                 return False
 
-            project = (
-                db.session.query(Project)
-                .filter_by(id=project_id, profile_id=profile.id)
-                .first()
-            )
+            project = db.session.query(Project).filter_by(id=project_id, profile_id=profile.id).first()
 
             if not project:
                 return False
@@ -1551,9 +1391,7 @@ class ProfileService:
             return [lang.to_dict() for lang in profile.languages]
 
         except SQLAlchemyError as e:
-            logger.error(
-                f"Database error retrieving languages for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error retrieving languages for user_id={user_id}: {str(e)}")
             raise
 
     @staticmethod
@@ -1587,16 +1425,10 @@ class ProfileService:
             # Validate proficiency level
             proficiency_level = data.get("proficiency_level", "professional_working")
             if proficiency_level not in Language.PROFICIENCY_LEVELS:
-                raise ValueError(
-                    f"proficiency_level must be one of: {', '.join(Language.PROFICIENCY_LEVELS)}"
-                )
+                raise ValueError(f"proficiency_level must be one of: {', '.join(Language.PROFICIENCY_LEVELS)}")
 
             # Check for duplicate
-            existing = (
-                db.session.query(Language)
-                .filter_by(profile_id=profile.id, name=data["name"])
-                .first()
-            )
+            existing = db.session.query(Language).filter_by(profile_id=profile.id, name=data["name"]).first()
 
             if existing:
                 raise ValueError(f"Language '{data['name']}' already exists")
@@ -1623,15 +1455,11 @@ class ProfileService:
             raise
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(
-                f"Database error adding language for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error adding language for user_id={user_id}: {str(e)}")
             raise
 
     @staticmethod
-    def update_language(
-        user_id: int, language_id: int, data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    def update_language(user_id: int, language_id: int, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Update a language.
 
@@ -1648,11 +1476,7 @@ class ProfileService:
             if not profile:
                 return None
 
-            language = (
-                db.session.query(Language)
-                .filter_by(id=language_id, profile_id=profile.id)
-                .first()
-            )
+            language = db.session.query(Language).filter_by(id=language_id, profile_id=profile.id).first()
 
             if not language:
                 return None
@@ -1665,9 +1489,7 @@ class ProfileService:
 
             if "proficiency_level" in data:
                 if data["proficiency_level"] not in Language.PROFICIENCY_LEVELS:
-                    raise ValueError(
-                        f"proficiency_level must be one of: {', '.join(Language.PROFICIENCY_LEVELS)}"
-                    )
+                    raise ValueError(f"proficiency_level must be one of: {', '.join(Language.PROFICIENCY_LEVELS)}")
                 language.proficiency_level = data["proficiency_level"]
 
             db.session.commit()
@@ -1699,11 +1521,7 @@ class ProfileService:
             if not profile:
                 return False
 
-            language = (
-                db.session.query(Language)
-                .filter_by(id=language_id, profile_id=profile.id)
-                .first()
-            )
+            language = db.session.query(Language).filter_by(id=language_id, profile_id=profile.id).first()
 
             if not language:
                 return False
@@ -1720,7 +1538,5 @@ class ProfileService:
             raise
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(
-                f"Database error bulk deleting skills for user_id={user_id}: {str(e)}"
-            )
+            logger.error(f"Database error bulk deleting skills for user_id={user_id}: {str(e)}")
             raise

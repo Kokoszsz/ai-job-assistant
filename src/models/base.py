@@ -5,6 +5,7 @@ Provides shared SQLAlchemy instance and base model class.
 """
 
 from datetime import datetime
+
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, DateTime, Integer
 from sqlalchemy.orm import DeclarativeBase
@@ -12,6 +13,7 @@ from sqlalchemy.orm import DeclarativeBase
 
 class Base(DeclarativeBase):
     """Base class for all models."""
+
     pass
 
 
@@ -23,6 +25,7 @@ class BaseModel(db.Model):
     Abstract base model with common fields and methods.
     All models should inherit from this class.
     """
+
     __abstract__ = True
 
     id = Column(Integer, primary_key=True, autoincrement=True)

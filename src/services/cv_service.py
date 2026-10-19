@@ -4,16 +4,18 @@ CV Service
 Business logic for CV management and AI-powered generation.
 """
 
-import logging
 import json
-from typing import Optional, Dict, Any, List
+import logging
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy.exc import SQLAlchemyError
+
 from src.models.base import db
 from src.models.cv import CV
 from src.models.job import JobOffer
 from src.models.user import User
-from src.services.profile_service import ProfileService
 from src.services.ai_service import get_ai_service
+from src.services.profile_service import ProfileService
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +32,7 @@ class CVService:
     # ===== CRUD Operations =====
 
     @staticmethod
-    def get_cv(
-        cv_id: int, user_id: int, include_content: bool = True
-    ) -> Optional[Dict[str, Any]]:
+    def get_cv(cv_id: int, user_id: int, include_content: bool = True) -> Optional[Dict[str, Any]]:
         """
         Get a specific CV by ID.
 
@@ -58,9 +58,7 @@ class CVService:
             raise
 
     @staticmethod
-    def get_user_cvs(
-        user_id: int, include_content: bool = False, limit: int = 50, offset: int = 0
-    ) -> Dict[str, Any]:
+    def get_user_cvs(user_id: int, include_content: bool = False, limit: int = 50, offset: int = 0) -> Dict[str, Any]:
         """
         Get all CVs for a user.
 
@@ -80,10 +78,7 @@ class CVService:
             cvs = query.order_by(CV.updated_at.desc()).limit(limit).offset(offset).all()
 
             return {
-                "cvs": [
-                    cv.to_dict(include_content=include_content, include_job=True)
-                    for cv in cvs
-                ],
+                "cvs": [cv.to_dict(include_content=include_content, include_job=True) for cv in cvs],
                 "total": total,
                 "limit": limit,
                 "offset": offset,
@@ -159,14 +154,11 @@ class CVService:
             except SQLAlchemyError as schema_error:
                 # Check if it's a missing column error
                 if "does not exist" in str(schema_error) and (
-                    "job_offer_id" in str(schema_error)
-                    or "is_ai_generated" in str(schema_error)
+                    "job_offer_id" in str(schema_error) or "is_ai_generated" in str(schema_error)
                 ):
                     # Rollback and retry with old schema (without new columns)
                     db.session.rollback()
-                    logger.warning(
-                        f"New CV columns don't exist, using legacy schema for CV creation"
-                    )
+                    logger.warning(f"New CV columns don't exist, using legacy schema for CV creation")
 
                     # Create CV with only old schema columns
                     cv = CV(
@@ -192,9 +184,7 @@ class CVService:
             raise
 
     @staticmethod
-    def update_cv(
-        cv_id: int, user_id: int, updates: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    def update_cv(cv_id: int, user_id: int, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Update a CV.
 
@@ -283,9 +273,7 @@ class CVService:
     # ===== AI Generation =====
 
     @staticmethod
-    def generate_generic_cv(
-        user_id: int, title: Optional[str] = None
-    ) -> Dict[str, Any]:
+    def generate_generic_cv(user_id: int, title: Optional[str] = None) -> Dict[str, Any]:
         """
         Generate a generic CV from user's profile using AI.
 
@@ -304,9 +292,7 @@ class CVService:
             profile_data = ProfileService.get_profile(user_id, include_details=True)
 
             if not profile_data:
-                raise ValueError(
-                    "Profile not found. Please complete your profile first."
-                )
+                raise ValueError("Profile not found. Please complete your profile first.")
 
             # Check profile completeness
             CVService._check_profile_completeness(profile_data)
@@ -321,9 +307,7 @@ class CVService:
 
             ai_service = get_ai_service()
             if not ai_service or not ai_service.is_available():
-                raise ValueError(
-                    "AI service is currently unavailable. Please try again later."
-                )
+                raise ValueError("AI service is currently unavailable. Please try again later.")
 
             # Create CV agent
             cv_agent = CVGenerationAgent(ai_service)
@@ -356,9 +340,7 @@ class CVService:
             raise ValueError(f"Failed to generate CV: {str(e)}")
 
     @staticmethod
-    def generate_tailored_cv(
-        user_id: int, job_offer_id: int, title: Optional[str] = None
-    ) -> Dict[str, Any]:
+    def generate_tailored_cv(user_id: int, job_offer_id: int, title: Optional[str] = None) -> Dict[str, Any]:
         """
         Generate a CV tailored to a specific job offer.
 
@@ -383,9 +365,7 @@ class CVService:
             profile_data = ProfileService.get_profile(user_id, include_details=True)
 
             if not profile_data:
-                raise ValueError(
-                    "Profile not found. Please complete your profile first."
-                )
+                raise ValueError("Profile not found. Please complete your profile first.")
 
             # Check profile completeness
             CVService._check_profile_completeness(profile_data)
@@ -400,9 +380,7 @@ class CVService:
 
             ai_service = get_ai_service()
             if not ai_service or not ai_service.is_available():
-                raise ValueError(
-                    "AI service is currently unavailable. Please try again later."
-                )
+                raise ValueError("AI service is currently unavailable. Please try again later.")
 
             # Create CV agent
             cv_agent = CVGenerationAgent(ai_service)
@@ -418,15 +396,11 @@ class CVService:
                 "description": job.description,
                 "requirements": job.requirements,
                 "job_type": job.job_type,
-                "salary_range": job.salary_range
-                if hasattr(job, "salary_range")
-                else None,
+                "salary_range": job.salary_range if hasattr(job, "salary_range") else None,
             }
 
             # Generate tailored CV content
-            generation_prompt = (
-                f"Generate a CV tailored to: {job.title} at {job.company}"
-            )
+            generation_prompt = f"Generate a CV tailored to: {job.title} at {job.company}"
             cv_content = cv_agent.generate_tailored_cv(profile_context, job_context)
 
             # Validate generated content
@@ -448,9 +422,7 @@ class CVService:
         except ValueError:
             raise
         except Exception as e:
-            logger.error(
-                f"Error generating tailored CV for user {user_id}, job {job_offer_id}: {str(e)}"
-            )
+            logger.error(f"Error generating tailored CV for user {user_id}, job {job_offer_id}: {str(e)}")
             raise ValueError(f"Failed to generate tailored CV: {str(e)}")
 
     # ===== Helper Methods =====
@@ -477,9 +449,7 @@ class CVService:
         missing = [key for key in required if key not in content]
 
         if missing:
-            raise ValueError(
-                f"CV content missing required fields: {', '.join(missing)}"
-            )
+            raise ValueError(f"CV content missing required fields: {', '.join(missing)}")
 
         # Validate personal info has basic fields
         personal = content.get("personal", {})
@@ -526,9 +496,7 @@ class CVService:
             )
 
     @staticmethod
-    def _build_profile_context(
-        user: User, profile_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _build_profile_context(user: User, profile_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Build comprehensive profile context for AI CV generation.
 

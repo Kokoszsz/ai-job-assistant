@@ -58,9 +58,7 @@ def sync_jobs_command(clear, category):
     click.echo("Fetching jobs from Remotive API...")
 
     try:
-        stats = JobSyncService.sync_from_remotive(
-            clear_existing=clear, category=category
-        )
+        stats = JobSyncService.sync_from_remotive(clear_existing=clear, category=category)
 
         click.echo("-" * 50)
         click.echo("Sync completed successfully!")

@@ -5,11 +5,13 @@ Generated curriculum vitae documents.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, String, Integer, ForeignKey, Index, Text, Boolean
+
+from sqlalchemy import Boolean, Column, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.types import JSON
 from sqlalchemy.orm import relationship
-from src.models.base import db, BaseModel
+from sqlalchemy.types import JSON
+
+from src.models.base import BaseModel, db
 
 
 class CV(BaseModel):
@@ -62,19 +64,13 @@ class CV(BaseModel):
 
     __tablename__ = "cvs"
 
-    user_id = Column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(200), nullable=False)
-    content_json = Column(
-        JSON().with_variant(JSONB, "postgresql"), nullable=False, default=dict
-    )
+    content_json = Column(JSON().with_variant(JSONB, "postgresql"), nullable=False, default=dict)
     target_position = Column(String(100), nullable=True)
 
     # Link to job offer if CV was tailored for a specific job
-    job_offer_id = Column(
-        Integer, ForeignKey("job_offers.id", ondelete="SET NULL"), nullable=True
-    )
+    job_offer_id = Column(Integer, ForeignKey("job_offers.id", ondelete="SET NULL"), nullable=True)
 
     # Generation metadata
     is_ai_generated = Column(Boolean, nullable=False, default=False)

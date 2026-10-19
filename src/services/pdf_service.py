@@ -6,26 +6,26 @@ Generate professional PDF documents from CV content using ReportLab.
 
 import io
 import logging
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
 
 from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch, mm
-from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_JUSTIFY
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
-    SimpleDocTemplate,
-    Paragraph,
-    Spacer,
-    Table,
-    TableStyle,
     HRFlowable,
     ListFlowable,
     ListItem,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
 )
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 
 logger = logging.getLogger(__name__)
 
@@ -214,9 +214,7 @@ class PDFService:
         return styles
 
     @classmethod
-    def _build_header(
-        cls, personal: Dict[str, Any], styles: Dict[str, ParagraphStyle]
-    ) -> list:
+    def _build_header(cls, personal: Dict[str, Any], styles: Dict[str, ParagraphStyle]) -> list:
         """Build the header section with name and contact info."""
         story = []
 
@@ -287,9 +285,7 @@ class PDFService:
         return story
 
     @classmethod
-    def _build_experience(
-        cls, experience: list, styles: Dict[str, ParagraphStyle]
-    ) -> list:
+    def _build_experience(cls, experience: list, styles: Dict[str, ParagraphStyle]) -> list:
         """Build the work experience section."""
         story = []
 
@@ -330,9 +326,7 @@ class PDFService:
         return story
 
     @classmethod
-    def _build_education(
-        cls, education: list, styles: Dict[str, ParagraphStyle]
-    ) -> list:
+    def _build_education(cls, education: list, styles: Dict[str, ParagraphStyle]) -> list:
         """Build the education section."""
         story = []
 
@@ -369,9 +363,7 @@ class PDFService:
         return story
 
     @classmethod
-    def _build_skills(
-        cls, skills: Dict[str, Any], styles: Dict[str, ParagraphStyle]
-    ) -> list:
+    def _build_skills(cls, skills: Dict[str, Any], styles: Dict[str, ParagraphStyle]) -> list:
         """Build the skills section."""
         story = []
 
@@ -401,9 +393,7 @@ class PDFService:
         return story
 
     @classmethod
-    def _build_additional_sections(
-        cls, sections: Dict[str, Any], styles: Dict[str, ParagraphStyle]
-    ) -> list:
+    def _build_additional_sections(cls, sections: Dict[str, Any], styles: Dict[str, ParagraphStyle]) -> list:
         """Build additional sections (certifications, projects, languages)."""
         story = []
 
@@ -465,9 +455,7 @@ class PDFService:
         return story
 
     @staticmethod
-    def _format_date_range(
-        start_date: str, end_date: Optional[str], current: bool
-    ) -> str:
+    def _format_date_range(start_date: str, end_date: Optional[str], current: bool) -> str:
         """
         Format a date range for display.
 

@@ -5,10 +5,12 @@ API endpoints for user profile management.
 """
 
 import logging
+
 from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import SQLAlchemyError
-from src.services.profile_service import ProfileService
+
 from src.middleware.auth_middleware import require_auth
+from src.services.profile_service import ProfileService
 
 logger = logging.getLogger(__name__)
 
@@ -51,25 +53,24 @@ def get_profile(user_id, email):
         profile = ProfileService.get_profile(user_id, include_details=include_details)
 
         if not profile:
-            return jsonify(
-                {"error": "PROFILE_NOT_FOUND", "message": f"Profile not found for user"}
-            ), 404
+            return jsonify({"error": "PROFILE_NOT_FOUND", "message": f"Profile not found for user"}), 404
 
         return jsonify(profile), 200
 
     except SQLAlchemyError as e:
         logger.error(f"Database error in get_profile: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while retrieving the profile",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while retrieving the profile",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in get_profile: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("", methods=["PUT"])
@@ -114,30 +115,34 @@ def update_profile(user_id, email):
             data = None
 
         if not data:
-            return jsonify(
-                {"error": "MISSING_DATA", "message": "Request body is required"}
-            ), 400
+            return jsonify({"error": "MISSING_DATA", "message": "Request body is required"}), 400
 
         # Validate that only allowed fields are provided
         allowed_fields = {"summary", "phone", "location"}
         extra_fields = set(data.keys()) - allowed_fields
         if extra_fields:
-            return jsonify(
-                {
-                    "error": "INVALID_FIELDS",
-                    "message": f"Invalid fields: {', '.join(extra_fields)}. Allowed: {', '.join(allowed_fields)}",
-                }
-            ), 400
+            return (
+                jsonify(
+                    {
+                        "error": "INVALID_FIELDS",
+                        "message": f"Invalid fields: {', '.join(extra_fields)}. Allowed: {', '.join(allowed_fields)}",
+                    }
+                ),
+                400,
+            )
 
         profile = ProfileService.update_profile(user_id, data)
 
         if not profile:
-            return jsonify(
-                {
-                    "error": "PROFILE_NOT_FOUND",
-                    "message": f"Profile not found for user_id={user_id}",
-                }
-            ), 404
+            return (
+                jsonify(
+                    {
+                        "error": "PROFILE_NOT_FOUND",
+                        "message": f"Profile not found for user_id={user_id}",
+                    }
+                ),
+                404,
+            )
 
         return jsonify(profile), 200
 
@@ -146,17 +151,18 @@ def update_profile(user_id, email):
         return jsonify({"error": "VALIDATION_ERROR", "message": str(e)}), 400
     except SQLAlchemyError as e:
         logger.error(f"Database error in update_profile: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while updating the profile",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while updating the profile",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in update_profile: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/preferences", methods=["GET"])
@@ -190,28 +196,32 @@ def get_preferences(user_id, email):
         preferences = ProfileService.get_preferences(user_id)
 
         if not preferences:
-            return jsonify(
-                {
-                    "error": "PROFILE_NOT_FOUND",
-                    "message": f"Profile not found for user_id={user_id}",
-                }
-            ), 404
+            return (
+                jsonify(
+                    {
+                        "error": "PROFILE_NOT_FOUND",
+                        "message": f"Profile not found for user_id={user_id}",
+                    }
+                ),
+                404,
+            )
 
         return jsonify(preferences), 200
 
     except SQLAlchemyError as e:
         logger.error(f"Database error in get_preferences: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while retrieving preferences",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while retrieving preferences",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in get_preferences: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/preferences", methods=["PUT"])
@@ -260,22 +270,28 @@ def update_preferences(user_id, email):
             preferences = None
 
         if not preferences:
-            return jsonify(
-                {
-                    "error": "MISSING_DATA",
-                    "message": "Request body with preferences is required",
-                }
-            ), 400
+            return (
+                jsonify(
+                    {
+                        "error": "MISSING_DATA",
+                        "message": "Request body with preferences is required",
+                    }
+                ),
+                400,
+            )
 
         result = ProfileService.update_preferences(user_id, preferences)
 
         if not result:
-            return jsonify(
-                {
-                    "error": "PROFILE_NOT_FOUND",
-                    "message": f"Profile not found for user_id={user_id}",
-                }
-            ), 404
+            return (
+                jsonify(
+                    {
+                        "error": "PROFILE_NOT_FOUND",
+                        "message": f"Profile not found for user_id={user_id}",
+                    }
+                ),
+                404,
+            )
 
         return jsonify(result), 200
 
@@ -284,17 +300,18 @@ def update_preferences(user_id, email):
         return jsonify({"error": "VALIDATION_ERROR", "message": str(e)}), 400
     except SQLAlchemyError as e:
         logger.error(f"Database error in update_preferences: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while updating preferences",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while updating preferences",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in update_preferences: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 # Work Experience Endpoints
@@ -334,17 +351,18 @@ def get_work_experiences(user_id, email):
 
     except SQLAlchemyError as e:
         logger.error(f"Database error in get_work_experiences: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while retrieving work experiences",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while retrieving work experiences",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in get_work_experiences: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/experience", methods=["POST"])
@@ -378,9 +396,7 @@ def add_work_experience(user_id, email):
             data = None
 
         if not data:
-            return jsonify(
-                {"error": "MISSING_DATA", "message": "Request body is required"}
-            ), 400
+            return jsonify({"error": "MISSING_DATA", "message": "Request body is required"}), 400
 
         experience = ProfileService.add_work_experience(user_id, data)
         return jsonify(experience), 201
@@ -390,17 +406,18 @@ def add_work_experience(user_id, email):
         return jsonify({"error": "VALIDATION_ERROR", "message": str(e)}), 400
     except SQLAlchemyError as e:
         logger.error(f"Database error in add_work_experience: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while adding work experience",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while adding work experience",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in add_work_experience: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/experience/<int:experience_id>", methods=["PUT"])
@@ -437,19 +454,20 @@ def update_work_experience(user_id, email, experience_id):
             data = None
 
         if not data:
-            return jsonify(
-                {"error": "MISSING_DATA", "message": "Request body is required"}
-            ), 400
+            return jsonify({"error": "MISSING_DATA", "message": "Request body is required"}), 400
 
         experience = ProfileService.update_work_experience(user_id, experience_id, data)
 
         if not experience:
-            return jsonify(
-                {
-                    "error": "NOT_FOUND",
-                    "message": f"Work experience {experience_id} not found or not owned by user",
-                }
-            ), 404
+            return (
+                jsonify(
+                    {
+                        "error": "NOT_FOUND",
+                        "message": f"Work experience {experience_id} not found or not owned by user",
+                    }
+                ),
+                404,
+            )
 
         return jsonify(experience), 200
 
@@ -458,17 +476,18 @@ def update_work_experience(user_id, email, experience_id):
         return jsonify({"error": "VALIDATION_ERROR", "message": str(e)}), 400
     except SQLAlchemyError as e:
         logger.error(f"Database error in update_work_experience: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while updating work experience",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while updating work experience",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in update_work_experience: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/experience/<int:experience_id>", methods=["DELETE"])
@@ -492,28 +511,32 @@ def delete_work_experience(user_id, email, experience_id):
         deleted = ProfileService.delete_work_experience(user_id, experience_id)
 
         if not deleted:
-            return jsonify(
-                {
-                    "error": "NOT_FOUND",
-                    "message": f"Work experience {experience_id} not found or not owned by user",
-                }
-            ), 404
+            return (
+                jsonify(
+                    {
+                        "error": "NOT_FOUND",
+                        "message": f"Work experience {experience_id} not found or not owned by user",
+                    }
+                ),
+                404,
+            )
 
         return "", 204
 
     except SQLAlchemyError as e:
         logger.error(f"Database error in delete_work_experience: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while deleting work experience",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while deleting work experience",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in delete_work_experience: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 # ===== Education Endpoints =====
@@ -538,17 +561,18 @@ def get_education(user_id, email):
 
     except SQLAlchemyError as e:
         logger.error(f"Database error in get_education: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while retrieving education",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while retrieving education",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in get_education: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/education", methods=["POST"])
@@ -580,12 +604,15 @@ def add_education(user_id, email):
             data = None
 
         if not data:
-            return jsonify(
-                {
-                    "error": "MISSING_DATA",
-                    "message": "Request body with education data is required",
-                }
-            ), 400
+            return (
+                jsonify(
+                    {
+                        "error": "MISSING_DATA",
+                        "message": "Request body with education data is required",
+                    }
+                ),
+                400,
+            )
 
         education = ProfileService.add_education(user_id, data)
         return jsonify(education), 201
@@ -598,17 +625,18 @@ def add_education(user_id, email):
         return jsonify({"error": "VALIDATION_ERROR", "message": error_msg}), 400
     except SQLAlchemyError as e:
         logger.error(f"Database error in add_education: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while adding education",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while adding education",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in add_education: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/education/<int:education_id>", methods=["PUT"])
@@ -643,12 +671,15 @@ def update_education(user_id, email, education_id):
             data = None
 
         if not data:
-            return jsonify(
-                {
-                    "error": "MISSING_DATA",
-                    "message": "Request body with education data is required",
-                }
-            ), 400
+            return (
+                jsonify(
+                    {
+                        "error": "MISSING_DATA",
+                        "message": "Request body with education data is required",
+                    }
+                ),
+                400,
+            )
 
         education = ProfileService.update_education(user_id, education_id, data)
         return jsonify(education), 200
@@ -661,17 +692,18 @@ def update_education(user_id, email, education_id):
         return jsonify({"error": "VALIDATION_ERROR", "message": error_msg}), 400
     except SQLAlchemyError as e:
         logger.error(f"Database error in update_education: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while updating education",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while updating education",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in update_education: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/education/<int:education_id>", methods=["DELETE"])
@@ -695,28 +727,32 @@ def delete_education(user_id, email, education_id):
         deleted = ProfileService.delete_education(user_id, education_id)
 
         if not deleted:
-            return jsonify(
-                {
-                    "error": "NOT_FOUND",
-                    "message": f"Education entry {education_id} not found or not owned by user",
-                }
-            ), 404
+            return (
+                jsonify(
+                    {
+                        "error": "NOT_FOUND",
+                        "message": f"Education entry {education_id} not found or not owned by user",
+                    }
+                ),
+                404,
+            )
 
         return "", 204
 
     except SQLAlchemyError as e:
         logger.error(f"Database error in delete_education: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while deleting education",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while deleting education",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in delete_education: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 # ===== Skills Endpoints =====
@@ -741,17 +777,18 @@ def get_skills(user_id, email):
 
     except SQLAlchemyError as e:
         logger.error(f"Database error in get_skills: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while retrieving skills",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while retrieving skills",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in get_skills: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/skills", methods=["POST"])
@@ -784,12 +821,15 @@ def add_skills(user_id, email):
             data = None
 
         if not data:
-            return jsonify(
-                {
-                    "error": "MISSING_DATA",
-                    "message": "Request body with skill data is required",
-                }
-            ), 400
+            return (
+                jsonify(
+                    {
+                        "error": "MISSING_DATA",
+                        "message": "Request body with skill data is required",
+                    }
+                ),
+                400,
+            )
 
         # Check if bulk add (has 'skills' array) or single add
         if "skills" in data and isinstance(data["skills"], list):
@@ -809,17 +849,18 @@ def add_skills(user_id, email):
         return jsonify({"error": "VALIDATION_ERROR", "message": error_msg}), 400
     except SQLAlchemyError as e:
         logger.error(f"Database error in add_skills: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while adding skills",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while adding skills",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in add_skills: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/skills/<int:skill_id>", methods=["DELETE"])
@@ -843,28 +884,32 @@ def delete_skill(user_id, email, skill_id):
         deleted = ProfileService.delete_skill(user_id, skill_id)
 
         if not deleted:
-            return jsonify(
-                {
-                    "error": "NOT_FOUND",
-                    "message": f"Skill {skill_id} not found or not owned by user",
-                }
-            ), 404
+            return (
+                jsonify(
+                    {
+                        "error": "NOT_FOUND",
+                        "message": f"Skill {skill_id} not found or not owned by user",
+                    }
+                ),
+                404,
+            )
 
         return "", 204
 
     except SQLAlchemyError as e:
         logger.error(f"Database error in delete_skill: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while deleting skill",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while deleting skill",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in delete_skill: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/skills/bulk-delete", methods=["POST"])
@@ -891,12 +936,15 @@ def delete_skills_bulk(user_id, email):
             data = None
 
         if not data or "skill_ids" not in data:
-            return jsonify(
-                {
-                    "error": "MISSING_DATA",
-                    "message": "Request body with skill_ids array is required",
-                }
-            ), 400
+            return (
+                jsonify(
+                    {
+                        "error": "MISSING_DATA",
+                        "message": "Request body with skill_ids array is required",
+                    }
+                ),
+                400,
+            )
 
         result = ProfileService.delete_skills_bulk(user_id, data["skill_ids"])
         return jsonify(result), 200
@@ -906,17 +954,18 @@ def delete_skills_bulk(user_id, email):
         return jsonify({"error": "VALIDATION_ERROR", "message": str(e)}), 400
     except SQLAlchemyError as e:
         logger.error(f"Database error in delete_skills_bulk: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while deleting skills",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while deleting skills",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in delete_skills_bulk: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 # ===== Certifications Endpoints =====
@@ -941,17 +990,18 @@ def get_certifications(user_id, email):
 
     except SQLAlchemyError as e:
         logger.error(f"Database error in get_certifications: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while retrieving certifications",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while retrieving certifications",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in get_certifications: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/certifications", methods=["POST"])
@@ -981,9 +1031,7 @@ def add_certification(user_id, email):
         data = request.get_json()
 
         if not data:
-            return jsonify(
-                {"error": "MISSING_DATA", "message": "Request body is required"}
-            ), 400
+            return jsonify({"error": "MISSING_DATA", "message": "Request body is required"}), 400
 
         certification = ProfileService.add_certification(user_id, data)
         return jsonify(certification), 201
@@ -995,17 +1043,18 @@ def add_certification(user_id, email):
         return jsonify({"error": "VALIDATION_ERROR", "message": error_msg}), 400
     except SQLAlchemyError as e:
         logger.error(f"Database error in add_certification: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while adding certification",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while adding certification",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in add_certification: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/certifications/<int:certification_id>", methods=["PUT"])
@@ -1027,21 +1076,20 @@ def update_certification(user_id, email, certification_id):
         data = request.get_json()
 
         if not data:
-            return jsonify(
-                {"error": "MISSING_DATA", "message": "Request body is required"}
-            ), 400
+            return jsonify({"error": "MISSING_DATA", "message": "Request body is required"}), 400
 
-        certification = ProfileService.update_certification(
-            user_id, certification_id, data
-        )
+        certification = ProfileService.update_certification(user_id, certification_id, data)
 
         if not certification:
-            return jsonify(
-                {
-                    "error": "NOT_FOUND",
-                    "message": f"Certification {certification_id} not found",
-                }
-            ), 404
+            return (
+                jsonify(
+                    {
+                        "error": "NOT_FOUND",
+                        "message": f"Certification {certification_id} not found",
+                    }
+                ),
+                404,
+            )
 
         return jsonify(certification), 200
 
@@ -1049,17 +1097,18 @@ def update_certification(user_id, email, certification_id):
         return jsonify({"error": "VALIDATION_ERROR", "message": str(e)}), 400
     except SQLAlchemyError as e:
         logger.error(f"Database error in update_certification: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while updating certification",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while updating certification",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in update_certification: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/certifications/<int:certification_id>", methods=["DELETE"])
@@ -1080,28 +1129,32 @@ def delete_certification(user_id, email, certification_id):
         deleted = ProfileService.delete_certification(user_id, certification_id)
 
         if not deleted:
-            return jsonify(
-                {
-                    "error": "NOT_FOUND",
-                    "message": f"Certification {certification_id} not found",
-                }
-            ), 404
+            return (
+                jsonify(
+                    {
+                        "error": "NOT_FOUND",
+                        "message": f"Certification {certification_id} not found",
+                    }
+                ),
+                404,
+            )
 
         return "", 204
 
     except SQLAlchemyError as e:
         logger.error(f"Database error in delete_certification: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while deleting certification",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while deleting certification",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in delete_certification: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 # ===== Projects Endpoints =====
@@ -1126,17 +1179,18 @@ def get_projects(user_id, email):
 
     except SQLAlchemyError as e:
         logger.error(f"Database error in get_projects: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while retrieving projects",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while retrieving projects",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in get_projects: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/projects", methods=["POST"])
@@ -1168,9 +1222,7 @@ def add_project(user_id, email):
         data = request.get_json()
 
         if not data:
-            return jsonify(
-                {"error": "MISSING_DATA", "message": "Request body is required"}
-            ), 400
+            return jsonify({"error": "MISSING_DATA", "message": "Request body is required"}), 400
 
         project = ProfileService.add_project(user_id, data)
         return jsonify(project), 201
@@ -1182,17 +1234,18 @@ def add_project(user_id, email):
         return jsonify({"error": "VALIDATION_ERROR", "message": error_msg}), 400
     except SQLAlchemyError as e:
         logger.error(f"Database error in add_project: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while adding project",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while adding project",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in add_project: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/projects/<int:project_id>", methods=["PUT"])
@@ -1214,16 +1267,12 @@ def update_project(user_id, email, project_id):
         data = request.get_json()
 
         if not data:
-            return jsonify(
-                {"error": "MISSING_DATA", "message": "Request body is required"}
-            ), 400
+            return jsonify({"error": "MISSING_DATA", "message": "Request body is required"}), 400
 
         project = ProfileService.update_project(user_id, project_id, data)
 
         if not project:
-            return jsonify(
-                {"error": "NOT_FOUND", "message": f"Project {project_id} not found"}
-            ), 404
+            return jsonify({"error": "NOT_FOUND", "message": f"Project {project_id} not found"}), 404
 
         return jsonify(project), 200
 
@@ -1231,17 +1280,18 @@ def update_project(user_id, email, project_id):
         return jsonify({"error": "VALIDATION_ERROR", "message": str(e)}), 400
     except SQLAlchemyError as e:
         logger.error(f"Database error in update_project: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while updating project",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while updating project",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in update_project: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/projects/<int:project_id>", methods=["DELETE"])
@@ -1262,25 +1312,24 @@ def delete_project(user_id, email, project_id):
         deleted = ProfileService.delete_project(user_id, project_id)
 
         if not deleted:
-            return jsonify(
-                {"error": "NOT_FOUND", "message": f"Project {project_id} not found"}
-            ), 404
+            return jsonify({"error": "NOT_FOUND", "message": f"Project {project_id} not found"}), 404
 
         return "", 204
 
     except SQLAlchemyError as e:
         logger.error(f"Database error in delete_project: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while deleting project",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while deleting project",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in delete_project: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 # ===== Languages Endpoints =====
@@ -1305,17 +1354,18 @@ def get_languages(user_id, email):
 
     except SQLAlchemyError as e:
         logger.error(f"Database error in get_languages: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while retrieving languages",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while retrieving languages",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in get_languages: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/languages", methods=["POST"])
@@ -1342,9 +1392,7 @@ def add_language(user_id, email):
         data = request.get_json()
 
         if not data:
-            return jsonify(
-                {"error": "MISSING_DATA", "message": "Request body is required"}
-            ), 400
+            return jsonify({"error": "MISSING_DATA", "message": "Request body is required"}), 400
 
         language = ProfileService.add_language(user_id, data)
         return jsonify(language), 201
@@ -1356,17 +1404,18 @@ def add_language(user_id, email):
         return jsonify({"error": "VALIDATION_ERROR", "message": error_msg}), 400
     except SQLAlchemyError as e:
         logger.error(f"Database error in add_language: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while adding language",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while adding language",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in add_language: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/languages/<int:language_id>", methods=["PUT"])
@@ -1388,16 +1437,12 @@ def update_language(user_id, email, language_id):
         data = request.get_json()
 
         if not data:
-            return jsonify(
-                {"error": "MISSING_DATA", "message": "Request body is required"}
-            ), 400
+            return jsonify({"error": "MISSING_DATA", "message": "Request body is required"}), 400
 
         language = ProfileService.update_language(user_id, language_id, data)
 
         if not language:
-            return jsonify(
-                {"error": "NOT_FOUND", "message": f"Language {language_id} not found"}
-            ), 404
+            return jsonify({"error": "NOT_FOUND", "message": f"Language {language_id} not found"}), 404
 
         return jsonify(language), 200
 
@@ -1405,17 +1450,18 @@ def update_language(user_id, email, language_id):
         return jsonify({"error": "VALIDATION_ERROR", "message": str(e)}), 400
     except SQLAlchemyError as e:
         logger.error(f"Database error in update_language: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while updating language",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while updating language",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in update_language: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500
 
 
 @profile_bp.route("/languages/<int:language_id>", methods=["DELETE"])
@@ -1436,22 +1482,21 @@ def delete_language(user_id, email, language_id):
         deleted = ProfileService.delete_language(user_id, language_id)
 
         if not deleted:
-            return jsonify(
-                {"error": "NOT_FOUND", "message": f"Language {language_id} not found"}
-            ), 404
+            return jsonify({"error": "NOT_FOUND", "message": f"Language {language_id} not found"}), 404
 
         return "", 204
 
     except SQLAlchemyError as e:
         logger.error(f"Database error in delete_language: {str(e)}")
-        return jsonify(
-            {
-                "error": "DATABASE_ERROR",
-                "message": "An error occurred while deleting language",
-            }
-        ), 500
+        return (
+            jsonify(
+                {
+                    "error": "DATABASE_ERROR",
+                    "message": "An error occurred while deleting language",
+                }
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Unexpected error in delete_language: {str(e)}")
-        return jsonify(
-            {"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}
-        ), 500
+        return jsonify({"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"}), 500

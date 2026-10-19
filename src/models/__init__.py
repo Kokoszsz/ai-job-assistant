@@ -4,21 +4,13 @@ SQLAlchemy Models for AI Job Search Assistant
 All database models are exported from this module.
 """
 
-from src.models.base import db, BaseModel
-from src.models.user import User
-from src.models.profile import (
-    Profile,
-    WorkExperience,
-    Education,
-    Skill,
-    Certification,
-    Project,
-    Language,
-)
+from src.models.base import BaseModel, db
 from src.models.conversation import Conversation, Message
-from src.models.job import JobOffer, FavoriteJob
 from src.models.cv import CV
 from src.models.interview import InterviewPrep
+from src.models.job import FavoriteJob, JobOffer
+from src.models.profile import Certification, Education, Language, Profile, Project, Skill, WorkExperience
+from src.models.user import User
 
 __all__ = [
     "db",

@@ -6,14 +6,14 @@ Provides OpenAI integration, conversation management, and error handling.
 """
 
 import logging
-from typing import Dict, Any, Optional, List, AsyncIterator
 from datetime import datetime
+from typing import Any, AsyncIterator, Dict, List, Optional
+
 from openai import OpenAI, OpenAIError
 from openai.types.chat import ChatCompletionChunk
 
 from ..memory.conversation_buffer import ConversationBuffer
-from ..prompts.base_prompts import SYSTEM_PROMPT_BASE, ERROR_HANDLING_PROMPT
-
+from ..prompts.base_prompts import ERROR_HANDLING_PROMPT, SYSTEM_PROMPT_BASE
 
 logger = logging.getLogger(__name__)
 
@@ -147,10 +147,7 @@ class BaseAgent:
 
             # Handle function calling
             function_call = None
-            if (
-                hasattr(assistant_message, "tool_calls")
-                and assistant_message.tool_calls
-            ):
+            if hasattr(assistant_message, "tool_calls") and assistant_message.tool_calls:
                 function_call = {
                     "name": assistant_message.tool_calls[0].function.name,
                     "arguments": assistant_message.tool_calls[0].function.arguments,
@@ -159,23 +156,21 @@ class BaseAgent:
             # Add to conversation
             self.conversation.add_assistant_message(content, function_call)
 
-            logger.info(
-                f"Generated response: {len(content)} chars, tokens used: {response.usage.total_tokens}"
-            )
+            logger.info(f"Generated response: {len(content)} chars, tokens used: {response.usage.total_tokens}")
 
             return content
 
         except OpenAIError as e:
             logger.error(f"OpenAI API error: {e}")
-            error_msg = "I apologize, but I'm having trouble connecting to the AI service. Please try again in a moment."
+            error_msg = (
+                "I apologize, but I'm having trouble connecting to the AI service. Please try again in a moment."
+            )
             self.conversation.add_assistant_message(error_msg)
             return error_msg
 
         except Exception as e:
             logger.error(f"Unexpected error in send_message: {e}", exc_info=True)
-            error_msg = (
-                "I apologize, but an unexpected error occurred. Please try again."
-            )
+            error_msg = "I apologize, but an unexpected error occurred. Please try again."
             self.conversation.add_assistant_message(error_msg)
             return error_msg
 
@@ -236,9 +231,7 @@ class BaseAgent:
 
         except OpenAIError as e:
             logger.error(f"OpenAI API error during streaming: {e}")
-            error_msg = (
-                "I apologize, but I'm having trouble connecting to the AI service."
-            )
+            error_msg = "I apologize, but I'm having trouble connecting to the AI service."
             self.conversation.add_assistant_message(error_msg)
             yield error_msg
 
@@ -305,16 +298,12 @@ class BaseAgent:
 
         except OpenAIError as e:
             logger.error(f"OpenAI API error during streaming: {e}")
-            error_msg = (
-                "I apologize, but I'm having trouble connecting to the AI service."
-            )
+            error_msg = "I apologize, but I'm having trouble connecting to the AI service."
             self.conversation.add_assistant_message(error_msg)
             yield error_msg
 
         except Exception as e:
-            logger.error(
-                f"Unexpected error in send_message_stream_sync: {e}", exc_info=True
-            )
+            logger.error(f"Unexpected error in send_message_stream_sync: {e}", exc_info=True)
             error_msg = "I apologize, but an unexpected error occurred."
             self.conversation.add_assistant_message(error_msg)
             yield error_msg

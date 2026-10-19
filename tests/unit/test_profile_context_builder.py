@@ -4,9 +4,11 @@ Unit Tests for ProfileContextBuilder
 Tests profile context formatting logic.
 """
 
-import pytest
 from datetime import date
 from unittest.mock import Mock, patch
+
+import pytest
+
 from src.services.profile_context_builder import ProfileContextBuilder
 
 
@@ -130,10 +132,7 @@ class TestFormatSkills:
 
     def test_limit_max_skills(self):
         """Should limit to max_skills parameter."""
-        skills = [
-            {"name": f"Skill{i}", "proficiency_level": "intermediate"}
-            for i in range(20)
-        ]
+        skills = [{"name": f"Skill{i}", "proficiency_level": "intermediate"} for i in range(20)]
         result = ProfileContextBuilder.format_skills(skills, max_skills=5)
         # Should show total count but limit displayed skills
         assert "20 total" in result
@@ -209,9 +208,7 @@ class TestBuildUserContext:
         # Mock user
         mock_user = Mock()
         mock_user.name = "John Doe"
-        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
-            mock_user
-        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = mock_user
 
         profile_data = {
             "location": "San Francisco, CA",
@@ -264,9 +261,7 @@ class TestBuildUserContext:
         """Should handle partial profile data gracefully."""
         mock_user = Mock()
         mock_user.name = "Jane Smith"
-        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
-            mock_user
-        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = mock_user
 
         profile_data = {
             "location": None,  # Missing

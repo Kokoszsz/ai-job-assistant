@@ -4,12 +4,14 @@ Integration Tests: Chat API
 Test chat conversation and message endpoints.
 """
 
-import pytest
 import json
 from datetime import datetime
-from src.models import db, User, Profile, Conversation, Message
-from src.services.auth_service import AuthService
+
+import pytest
+
 from src.app import create_app
+from src.models import Conversation, Message, Profile, User, db
+from src.services.auth_service import AuthService
 
 
 @pytest.fixture
@@ -95,9 +97,7 @@ class TestCreateConversation:
         """Test conversation creation with title exceeding max length."""
         long_title = "A" * 201  # Exceeds 200 char limit
 
-        response = client.post(
-            "/api/chat/conversations", headers=auth_headers, json={"title": long_title}
-        )
+        response = client.post("/api/chat/conversations", headers=auth_headers, json={"title": long_title})
 
         assert response.status_code == 400
         data = json.loads(response.data)
@@ -119,16 +119,12 @@ class TestListConversations:
         """Create test conversations."""
         # Create 3 active conversations
         for i in range(3):
-            conv = Conversation(
-                user_id=test_user.id, title=f"Conversation {i + 1}", is_archived=False
-            )
+            conv = Conversation(user_id=test_user.id, title=f"Conversation {i + 1}", is_archived=False)
             db.session.add(conv)
 
         # Create 2 archived conversations
         for i in range(2):
-            conv = Conversation(
-                user_id=test_user.id, title=f"Archived {i + 1}", is_archived=True
-            )
+            conv = Conversation(user_id=test_user.id, title=f"Archived {i + 1}", is_archived=True)
             db.session.add(conv)
 
         db.session.commit()
@@ -145,9 +141,7 @@ class TestListConversations:
 
     def test_list_active_conversations_only(self, client, auth_headers):
         """Test listing only active conversations."""
-        response = client.get(
-            "/api/chat/conversations?archived=false", headers=auth_headers
-        )
+        response = client.get("/api/chat/conversations?archived=false", headers=auth_headers)
 
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -157,9 +151,7 @@ class TestListConversations:
 
     def test_list_archived_conversations_only(self, client, auth_headers):
         """Test listing only archived conversations."""
-        response = client.get(
-            "/api/chat/conversations?archived=true", headers=auth_headers
-        )
+        response = client.get("/api/chat/conversations?archived=true", headers=auth_headers)
 
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -169,9 +161,7 @@ class TestListConversations:
 
     def test_list_conversations_with_pagination(self, client, auth_headers):
         """Test pagination of conversation list."""
-        response = client.get(
-            "/api/chat/conversations?limit=2&offset=0", headers=auth_headers
-        )
+        response = client.get("/api/chat/conversations?limit=2&offset=0", headers=auth_headers)
 
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -211,9 +201,7 @@ class TestGetMessages:
 
     def test_get_messages_success(self, client, auth_headers, conversation):
         """Test successful message retrieval."""
-        response = client.get(
-            f"/api/chat/conversations/{conversation.id}/messages", headers=auth_headers
-        )
+        response = client.get(f"/api/chat/conversations/{conversation.id}/messages", headers=auth_headers)
 
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -242,9 +230,7 @@ class TestGetMessages:
 
     def test_get_messages_conversation_not_found(self, client, auth_headers):
         """Test getting messages for non-existent conversation."""
-        response = client.get(
-            "/api/chat/conversations/99999/messages", headers=auth_headers
-        )
+        response = client.get("/api/chat/conversations/99999/messages", headers=auth_headers)
 
         assert response.status_code == 404
         data = json.loads(response.data)
@@ -263,9 +249,7 @@ class TestGetMessages:
         db.session.add(conv)
         db.session.commit()
 
-        response = client.get(
-            f"/api/chat/conversations/{conv.id}/messages", headers=auth_headers
-        )
+        response = client.get(f"/api/chat/conversations/{conv.id}/messages", headers=auth_headers)
 
         assert response.status_code == 403
         data = json.loads(response.data)
@@ -331,9 +315,7 @@ class TestSendMessage:
 
         monkeypatch.setattr(chat, "get_ai_service", original_get_service)
 
-    def test_send_message_success(
-        self, client, auth_headers, conversation, mock_ai_service
-    ):
+    def test_send_message_success(self, client, auth_headers, conversation, mock_ai_service):
         """Test successful message sending."""
         response = client.post(
             f"/api/chat/conversations/{conversation.id}/messages",
@@ -359,9 +341,7 @@ class TestSendMessage:
         db.session.refresh(conversation)
         assert conversation.title == "Hello AI!"
 
-    def test_send_message_auto_title_truncation(
-        self, client, auth_headers, conversation, mock_ai_service
-    ):
+    def test_send_message_auto_title_truncation(self, client, auth_headers, conversation, mock_ai_service):
         """Test auto-generated title is truncated for long messages."""
         long_message = " ".join(["word"] * 20)  # More than 8 words
 
@@ -416,9 +396,7 @@ class TestSendMessage:
         data = json.loads(response.data)
         assert data["error"]["code"] == "CONTENT_TOO_LONG"
 
-    def test_send_message_conversation_not_found(
-        self, client, auth_headers, mock_ai_service
-    ):
+    def test_send_message_conversation_not_found(self, client, auth_headers, mock_ai_service):
         """Test sending message to non-existent conversation."""
         response = client.post(
             "/api/chat/conversations/99999/messages",
@@ -430,9 +408,7 @@ class TestSendMessage:
         data = json.loads(response.data)
         assert data["error"]["code"] == "CONVERSATION_NOT_FOUND"
 
-    def test_send_message_forbidden(
-        self, client, auth_headers, test_user, mock_ai_service
-    ):
+    def test_send_message_forbidden(self, client, auth_headers, test_user, mock_ai_service):
         """Test sending message to another user's conversation."""
         # Create conversation for different user
         other_user = User(email="other2@example.com", name="Other User 2")
@@ -454,9 +430,7 @@ class TestSendMessage:
         data = json.loads(response.data)
         assert data["error"]["code"] == "FORBIDDEN"
 
-    def test_send_message_ai_unavailable(
-        self, client, auth_headers, conversation, monkeypatch
-    ):
+    def test_send_message_ai_unavailable(self, client, auth_headers, conversation, monkeypatch):
         """Test sending message when AI service is unavailable."""
         from src.api import chat
 
@@ -475,9 +449,7 @@ class TestSendMessage:
         data = json.loads(response.data)
         assert data["error"]["code"] == "AI_UNAVAILABLE"
 
-    def test_send_message_preserves_context(
-        self, client, auth_headers, conversation, mock_ai_service
-    ):
+    def test_send_message_preserves_context(self, client, auth_headers, conversation, mock_ai_service):
         """Test that conversation context is maintained across messages."""
         # Send first message
         response1 = client.post(
