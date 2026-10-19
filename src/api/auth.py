@@ -546,7 +546,7 @@ def request_password_reset():
         500: Server error
     """
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
 
         # Validate input
         if not data:
@@ -625,7 +625,7 @@ def confirm_password_reset():
         500: Server error
     """
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
 
         # Validate input
         if not data:
