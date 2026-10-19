@@ -9,10 +9,23 @@ from datetime import datetime, timedelta
 
 import pytest
 
+from src.app import create_app
 from src.models.base import db
 from src.models.job import FavoriteJob, JobOffer
 from src.models.user import User
 from src.services.job_service import JobService
+
+
+@pytest.fixture
+def app():
+    """Create test Flask app with a fresh database."""
+    app = create_app("testing")
+
+    with app.app_context():
+        db.create_all()
+        yield app
+        db.session.remove()
+        db.drop_all()
 
 
 @pytest.fixture
@@ -128,7 +141,7 @@ def test_jobs(app):
 def test_user(app):
     """Create test user."""
     with app.app_context():
-        user = User(email="testuser@example.com", password_hash="dummy_hash", first_name="Test", last_name="User")
+        user = User(email="testuser@example.com", password_hash="dummy_hash", name="Test User")
         db.session.add(user)
         db.session.commit()
 
@@ -151,8 +164,10 @@ class TestJobServiceSearchIntegration:
 
             assert result["pagination"]["total"] >= 4  # At least 4 Python jobs
             assert len(result["jobs"]) >= 4
+            # The query matches title, company, description and requirements
+            searchable = ("title", "company", "description", "requirements")
             assert all(
-                "python" in job["title"].lower() or "python" in job["description"].lower() for job in result["jobs"]
+                any("python" in (job.get(field) or "").lower() for field in searchable) for job in result["jobs"]
             )
 
     def test_search_jobs_location_filter(self, app, test_jobs):
@@ -371,7 +386,7 @@ class TestJobServiceFavoritesIntegration:
 
             assert result is not None
             assert result["user_id"] == test_user
-            assert result["job_offer_id"] == test_jobs[0]
+            assert result["job_id"] == test_jobs[0]
             assert result["notes"] == "Great opportunity"
 
     def test_add_favorite_job_duplicate(self, app, test_jobs, test_user):
@@ -381,9 +396,8 @@ class TestJobServiceFavoritesIntegration:
             JobService.add_favorite_job(user_id=test_user, job_id=test_jobs[0])
 
             # Try to add again
-            result = JobService.add_favorite_job(user_id=test_user, job_id=test_jobs[0])
-
-            assert result is None
+            with pytest.raises(ValueError, match="already in favorites"):
+                JobService.add_favorite_job(user_id=test_user, job_id=test_jobs[0])
 
     def test_remove_favorite_job(self, app, test_jobs, test_user):
         """Should remove job from favorites."""
@@ -397,7 +411,7 @@ class TestJobServiceFavoritesIntegration:
             assert result == True
 
             # Verify removed
-            favorites = JobService.get_favorite_jobs(user_id=test_user)
+            favorites = JobService.get_favorite_jobs(user_id=test_user)["favorites"]
             assert len(favorites) == 0
 
     def test_update_favorite_notes(self, app, test_jobs, test_user):
@@ -420,9 +434,9 @@ class TestJobServiceFavoritesIntegration:
             JobService.add_favorite_job(user_id=test_user, job_id=test_jobs[1])
 
             # Get favorites
-            favorites = JobService.get_favorite_jobs(user_id=test_user)
+            favorites = JobService.get_favorite_jobs(user_id=test_user)["favorites"]
 
             assert len(favorites) == 2
-            favorite_ids = {fav["job_offer_id"] for fav in favorites}
+            favorite_ids = {fav["job_id"] for fav in favorites}
             assert test_jobs[0] in favorite_ids
             assert test_jobs[1] in favorite_ids

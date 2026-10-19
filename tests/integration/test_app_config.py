@@ -12,8 +12,10 @@ from src.app import create_app
 from src.config import DevelopmentConfig, ProductionConfig, TestingConfig, get_config
 
 
-def test_get_config_default():
+def test_get_config_default(monkeypatch):
     """Test default configuration."""
+    # CI sets FLASK_ENV=testing; the default only applies when it is unset
+    monkeypatch.delenv("FLASK_ENV", raising=False)
     config = get_config()
     assert isinstance(config, DevelopmentConfig)
 

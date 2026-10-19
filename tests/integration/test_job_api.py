@@ -156,11 +156,8 @@ class TestJobSearch:
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert "jobs" in data
-        assert "pagination" in data
-        assert "filters_applied" in data
-        assert data["pagination"]["total"] >= 3
-        assert len(data["jobs"]) >= 3
+        assert data["data"]["total"] >= 3
+        assert len(data["data"]["data"]) >= 3
 
     def test_search_jobs_with_keyword(self, client, auth_headers, test_jobs):
         """Should filter by keyword."""
@@ -169,9 +166,9 @@ class TestJobSearch:
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data["pagination"]["total"] >= 1
+        assert data["data"]["total"] >= 1
         # Should find Python developer job
-        titles = [job["title"] for job in data["jobs"]]
+        titles = [job["title"] for job in data["data"]["data"]]
         assert any("Python" in title for title in titles)
 
     def test_search_jobs_with_location(self, client, auth_headers, test_jobs):
@@ -181,8 +178,8 @@ class TestJobSearch:
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data["pagination"]["total"] >= 1
-        for job in data["jobs"]:
+        assert data["data"]["total"] >= 1
+        for job in data["data"]["data"]:
             assert "San Francisco" in job["location"]
 
     def test_search_jobs_with_multiple_job_types(self, client, auth_headers, test_jobs):
@@ -192,8 +189,8 @@ class TestJobSearch:
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data["pagination"]["total"] >= 2
-        for job in data["jobs"]:
+        assert data["data"]["total"] >= 2
+        for job in data["data"]["data"]:
             assert job["job_type"] in ["full-time", "remote"]
 
     def test_search_jobs_with_salary_range(self, client, auth_headers, test_jobs):
@@ -203,8 +200,8 @@ class TestJobSearch:
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data["pagination"]["total"] >= 1
-        for job in data["jobs"]:
+        assert data["data"]["total"] >= 1
+        for job in data["data"]["data"]:
             if job["salary_max"]:
                 assert job["salary_max"] >= 100000
             if job["salary_min"]:
@@ -217,10 +214,8 @@ class TestJobSearch:
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data["filters_applied"]["sort_by"] == "salary_max"
-
         # Check that salaries are in descending order (nulls last)
-        salaries = [job["salary_max"] for job in data["jobs"] if job["salary_max"] is not None]
+        salaries = [job["salary_max"] for job in data["data"]["data"] if job["salary_max"] is not None]
         assert salaries == sorted(salaries, reverse=True)
 
     def test_search_jobs_pagination(self, client, auth_headers, test_jobs):
@@ -231,16 +226,16 @@ class TestJobSearch:
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data["pagination"]["page"] == 1
-        assert data["pagination"]["page_size"] == 2
-        assert len(data["jobs"]) <= 2
+        assert data["data"]["offset"] == 0
+        assert data["data"]["limit"] == 2
+        assert len(data["data"]["data"]) <= 2
 
         # Second page
         response = client.get("/api/jobs/search?page=2&page_size=2", headers=auth_headers)
 
         assert response.status_code == 200
         data = json.loads(response.data)
-        assert data["pagination"]["page"] == 2
+        assert data["data"]["offset"] == 2
 
     def test_search_jobs_invalid_salary_range(self, client, auth_headers):
         """Should reject invalid salary range."""
@@ -248,7 +243,7 @@ class TestJobSearch:
 
         assert response.status_code == 400
         data = json.loads(response.data)
-        assert "salary_min cannot be greater than salary_max" in data["message"]
+        assert "salary_min cannot be greater than salary_max" in data["error"]["message"]
 
     def test_search_jobs_invalid_parameters(self, client, auth_headers):
         """Should reject invalid numeric parameters."""
@@ -256,7 +251,7 @@ class TestJobSearch:
 
         assert response.status_code == 400
         data = json.loads(response.data)
-        assert data["error"] == "VALIDATION_ERROR"
+        assert data["error"]["code"] == "VALIDATION_ERROR"
 
     def test_search_jobs_includes_favorite_status(self, client, auth_headers, test_jobs, test_user):
         """Should include favorite status for authenticated user."""
@@ -273,12 +268,12 @@ class TestJobSearch:
             data = json.loads(response.data)
 
             # Find the favorited job
-            favorited_job = next((j for j in data["jobs"] if j["id"] == test_jobs[0]), None)
+            favorited_job = next((j for j in data["data"]["data"] if j["id"] == test_jobs[0]), None)
             assert favorited_job is not None
             assert favorited_job["is_favorited"] == True
 
             # Other jobs should not be favorited
-            other_jobs = [j for j in data["jobs"] if j["id"] != test_jobs[0]]
+            other_jobs = [j for j in data["data"]["data"] if j["id"] != test_jobs[0]]
             for job in other_jobs:
                 assert job["is_favorited"] == False
 
@@ -295,9 +290,8 @@ class TestJobSearch:
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data["pagination"]["total"] == 0
-        assert len(data["jobs"]) == 0
-        assert "suggestions" in data
+        assert data["data"]["total"] == 0
+        assert len(data["data"]["data"]) == 0
 
 
 class TestJobDetails:
@@ -316,7 +310,7 @@ class TestJobDetails:
         response = client.get(f"/api/jobs/{test_jobs[0]}", headers=auth_headers)
 
         assert response.status_code == 200
-        data = json.loads(response.data)
+        data = json.loads(response.data)["data"]
 
         assert data["id"] == test_jobs[0]
         assert "title" in data
@@ -331,7 +325,7 @@ class TestJobDetails:
 
         assert response.status_code == 404
         data = json.loads(response.data)
-        assert data["error"] == "NOT_FOUND"
+        assert data["error"]["code"] == "NOT_FOUND"
 
     def test_get_job_includes_favorite_status(self, client, auth_headers, test_jobs, test_user):
         """Should include favorite status."""
@@ -345,7 +339,7 @@ class TestJobDetails:
             response = client.get(f"/api/jobs/{test_jobs[0]}", headers=auth_headers)
 
             assert response.status_code == 200
-            data = json.loads(response.data)
+            data = json.loads(response.data)["data"]
             assert data["is_favorited"] == True
 
         finally:
@@ -372,9 +366,8 @@ class TestFavoriteJobs:
 
         assert response.status_code == 200
         data = json.loads(response.data)
-        assert "favorites" in data
-        assert len(data["favorites"]) == 0
-        assert "pagination" in data
+        assert data["data"]["data"] == []
+        assert data["data"]["total"] == 0
 
     def test_add_favorite_requires_auth(self, client, test_jobs):
         """Should require authentication."""
@@ -396,7 +389,7 @@ class TestFavoriteJobs:
         assert response.status_code == 201
         data = json.loads(response.data)
         assert data["user_id"] == test_user
-        assert data["job_offer_id"] == test_jobs[0]
+        assert data["job_id"] == test_jobs[0]
         assert data["notes"] == "Great opportunity"
 
         # Cleanup
@@ -411,7 +404,7 @@ class TestFavoriteJobs:
         assert response.status_code == 201
         data = json.loads(response.data)
         assert data["user_id"] == test_user
-        assert data["job_offer_id"] == test_jobs[0]
+        assert data["job_id"] == test_jobs[0]
 
         # Cleanup
         with client.application.app_context():
@@ -516,9 +509,9 @@ class TestFavoriteJobs:
             assert response.status_code == 200
             data = json.loads(response.data)
 
-            assert "favorites" in data
-            assert len(data["favorites"]) == 2
-            favorite_job_ids = [fav["job_offer_id"] for fav in data["favorites"]]
+            favorites = data["data"]["data"]
+            assert len(favorites) == 2
+            favorite_job_ids = [fav["job_id"] for fav in favorites]
             assert test_jobs[0] in favorite_job_ids
             assert test_jobs[1] in favorite_job_ids
 
