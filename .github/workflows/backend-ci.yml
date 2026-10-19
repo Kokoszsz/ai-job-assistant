@@ -1,23 +1,17 @@
 # ==============================================================================
 # AI-Powered Job Search Assistant - Backend CI Pipeline
 # ==============================================================================
-# Runs on push to feature branch and pull requests
+# Runs on every push to main and on pull requests into main
 
 name: Backend CI
 
 on:
   push:
     branches:
-      - '001-ai-job-assistant'
-    paths:
-      - 'backend/**'
-      - '.github/workflows/backend-ci.yml'
+      - main
   pull_request:
     branches:
       - main
-      - develop
-    paths:
-      - 'backend/**'
 
 env:
   PYTHON_VERSION: '3.11'
@@ -146,15 +140,8 @@ jobs:
         run: |
           pytest tests/ -v --cov=src --cov-report=xml --cov-report=html
 
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
-        with:
-          file: coverage.xml
-          flags: backend
-          name: backend-coverage
-
       - name: Upload coverage HTML report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: backend-coverage-report
           path: htmlcov/
