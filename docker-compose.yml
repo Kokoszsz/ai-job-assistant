@@ -51,7 +51,7 @@ services:
   # ============================================================================
   backend:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
       target: development
     container_name: jobassistant-backend
@@ -94,7 +94,7 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./backend:/app
+      - .:/app
       - backend_venv:/app/.venv
     depends_on:
       db:

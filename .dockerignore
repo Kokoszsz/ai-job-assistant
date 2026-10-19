@@ -81,3 +81,7 @@ docker-compose*.yml
 # Logs
 logs/
 *.log
+
+# Repo files the image doesn't need
+.github/
+docker/
