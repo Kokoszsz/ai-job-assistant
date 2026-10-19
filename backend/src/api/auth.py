@@ -384,15 +384,14 @@ def refresh():
         500: Server error
     """
     try:
-        # Get refresh token from cookie, request body, or header
-        refresh_token = request.cookies.get('refresh_token')
+        # A token sent explicitly in the body wins over the cookie
+        data = request.get_json(silent=True) or {}
+        refresh_token = data.get('refresh_token')
         
-        # Fallback to request body or header if not in cookie
         if not refresh_token:
-            data = request.get_json(silent=True) or {}
-            refresh_token = data.get('refresh_token')
+            refresh_token = request.cookies.get('refresh_token')
         
-        # Try Authorization header if not in body
+        # Try Authorization header if not in body or cookie
         if not refresh_token:
             auth_header = request.headers.get('Authorization')
             if auth_header and auth_header.startswith('Bearer '):
@@ -415,9 +414,14 @@ def refresh():
             tokens = auth_service.refresh_access_token(refresh_token)
             
             # Create response
+            # Tokens go in the body (for API clients) and in cookies (for browsers)
             response = jsonify({
                 'success': True,
-                'message': 'Token refreshed successfully'
+                'message': 'Token refreshed successfully',
+                'data': {
+                    'access_token': tokens['access_token'],
+                    'refresh_token': tokens['refresh_token'],
+                }
             })
             
             # Set new tokens as httpOnly cookies

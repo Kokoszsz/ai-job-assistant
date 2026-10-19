@@ -298,6 +298,7 @@ class TestSendMessage:
                     {
                         "add_user_message": lambda self, x: None,
                         "add_assistant_message": lambda self, x: None,
+                        "messages": [],
                     },
                 )()
 
@@ -307,7 +308,7 @@ class TestSendMessage:
             def initialize_conversation(self, system_prompt=None):
                 pass
 
-            def send_message(self, content):
+            def send_message(self, content, tools=None):
                 return f"AI response to: {content}"
 
         class MockAIService:
